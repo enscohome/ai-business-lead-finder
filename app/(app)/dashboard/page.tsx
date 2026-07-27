@@ -25,7 +25,10 @@ export default function DashboardPage() {
   }, []);
 
   const stats = {
-    totalSearches: parseInt(localStorage.getItem("totalSearches") || "0"),
+    totalSearches:
+  typeof window !== "undefined"
+    ? parseInt(localStorage.getItem("totalSearches") || "0")
+    : 0,
     savedLeads: savedLeads.length,
     contactedLeads: savedLeads.filter((l: SavedLead) => l.status === "contacted" || l.status === "interested" || l.status === "closed").length,
     closedDeals: savedLeads.filter((l: SavedLead) => l.status === "closed").length,
