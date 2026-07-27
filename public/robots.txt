@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard
+Disallow: /search
+Disallow: /leads
+Disallow: /lead
+Disallow: /settings
+Disallow: /team
+Disallow: /auth/
+
+Sitemap: https://yourdomain.com/sitemap.xml

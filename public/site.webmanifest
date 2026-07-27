@@ -1,0 +1,16 @@
+{
+  "name": "AI Business Lead Finder",
+  "short_name": "LeadFinder",
+  "description": "AI-powered business discovery for freelancers and agencies",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
