@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { SearchResults } from "@/components/search/search-results";
 import { SearchBar } from "@/components/search/search-bar";
@@ -11,7 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, AlertTriangle } from "lucide-react";
 
-export default function SearchPage() {
+function SearchPageContent() {
   const searchParams = useSearchParams();
   const [businesses, setBusinesses] = React.useState<Business[]>([]);
   const [savedLeads, setSavedLeads] = React.useState<SavedLead[]>([]);
@@ -199,5 +200,12 @@ export default function SearchPage() {
         isLoading={isLoading}
       />
     </div>
+  );
+}
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <SearchPageContent />
+    </Suspense>
   );
 }
