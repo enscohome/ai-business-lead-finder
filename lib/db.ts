@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { Business, SavedLead, SearchHistory, Activity } from "@/types";
+import { Business, SavedLead, SearchHistory } from "@/types";
 
 // ==================== SAVED LEADS ====================
 
