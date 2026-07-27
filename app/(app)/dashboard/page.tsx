@@ -52,7 +52,9 @@ export default function DashboardPage() {
       {/* Quick Search */}
       <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
         <CardContent className="p-6">
-          <SearchBar variant="hero" />
+    <React.Suspense fallback={<div>Loading search...</div>}>
+  <SearchBar variant="hero" />
+</React.Suspense>
         </CardContent>
       </Card>
 
