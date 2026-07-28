@@ -58,13 +58,18 @@ export function Sidebar() {
         )}
       >
         {/* Logo */}
-        <Link href="/dashboard"> className="flex items-center gap-3 px-6 py-5 border-b hover:bg-accent/50 transition-colors">
+        <Link href="/dashboard" className="flex items-center gap-3 px-6 py-5 border-b hover:bg-accent/50 transition-colors">
           <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
             <Zap className="h-5 w-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold leading-tight">LeadFinder</h1>
-            <p className="text-xs text-muted-foreground">AI-Powered</p>
+           <h1 className="text-lg font-bold leading-tight">
+  LeadPilot AI
+</h1>
+
+<p className="text-xs text-muted-foreground">
+  Find Your Next Client
+</p>
           </div>
         </Link>
 
