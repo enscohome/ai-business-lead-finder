@@ -43,12 +43,8 @@ interface TeamMember {
   status: "active" | "pending";
 }
 
-const mockTeam: TeamMember[] = [
-  { id: "1", name: "John Doe", email: "john@agency.com", role: "owner", joinedAt: "2026-01-15", status: "active" },
-  { id: "2", name: "Sarah Smith", email: "sarah@agency.com", role: "admin", joinedAt: "2026-02-20", status: "active" },
-  { id: "3", name: "Mike Johnson", email: "mike@agency.com", role: "member", joinedAt: "2026-03-10", status: "active" },
-  { id: "4", name: "Lisa Wang", email: "lisa@agency.com", role: "member", joinedAt: "", status: "pending" },
-];
+const mockTeam: TeamMember[] = [];
+ 
 
 export default function TeamPage() {
   const [members, setMembers] = React.useState<TeamMember[]>(mockTeam);
