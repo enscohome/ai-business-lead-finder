@@ -35,7 +35,11 @@ React.useEffect(() => {
       router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
-
+const handleLogout = async () => {
+  await supabase.auth.signOut();
+  router.push("/auth/login");
+  router.refresh();
+};
   return (
     <header className="sticky top-0 z-30 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="flex h-16 items-center gap-4 px-4 lg:px-8">
@@ -96,7 +100,7 @@ React.useEffect(() => {
                 Upgrade Plan
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">
+             <DropdownMenuItem className="text-red-600" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
                 Log out
               </DropdownMenuItem>
