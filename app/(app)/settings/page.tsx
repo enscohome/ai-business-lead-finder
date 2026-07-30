@@ -12,16 +12,42 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { SubscriptionPlans } from "@/components/subscription-plans";
+import { createClient } from "@/lib/supabase/client";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [user, setUser] = React.useState<any>(null);
+  const supabase = createClient();
+const [user, setUser] = React.useState<SupabaseUser | null>(null);
+const [fullName, setFullName] = React.useState("");
+const [phone, setPhone] = React.useState("");
+const [company, setCompany] = React.useState("");
+React.useEffect(() => {
+  supabase.auth.getUser().then(({ data }) => {
+  const currentUser = data.user;
+setUser(currentUser);
+setFullName(currentUser?.user_metadata?.full_name || "");
+setPhone(currentUser?.user_metadata?.phone || "");
+setCompany(currentUser?.user_metadata?.company || "");
+  });
+}, []);
+const handleSaveChanges = async () => {
+  const { data, error } = await supabase.auth.updateUser({
+    data: {
+      full_name: fullName,
+      phone: phone,
+      company: company,
+    },
+  });
 
-  React.useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) setUser(JSON.parse(stored));
-  }, []);
+  if (error) {
+    alert(error.message);
+    return;
+  }
 
+  setUser(data.user);
+  alert("Profile updated successfully!");
+};
   const handleLogout = () => {
     localStorage.removeItem("user");
     router.push("/auth/login");
@@ -58,7 +84,7 @@ export default function SettingsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label>Full Name</Label>
-                  <Input defaultValue={user?.name || ""} placeholder="John Doe" />
+               <Input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="John Doe" />
                 </div>
                 <div className="space-y-2">
                   <Label>Email</Label>
@@ -66,14 +92,22 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <Label>Phone</Label>
-                  <Input placeholder="+234 800 000 0000" />
+                 <Input
+  value={phone}
+  onChange={(e) => setPhone(e.target.value)}
+  placeholder="+234 800 000 0000"
+/>
                 </div>
                 <div className="space-y-2">
                   <Label>Company</Label>
-                  <Input placeholder="Your Company" />
+                 <Input
+  value={company}
+  onChange={(e) => setCompany(e.target.value)}
+  placeholder="Your Company"
+/>
                 </div>
               </div>
-              <Button>Save Changes</Button>
+              <Button onClick={handleSaveChanges}>Save Changes</Button>
             </CardContent>
           </Card>
         </TabsContent>
