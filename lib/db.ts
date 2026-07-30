@@ -312,7 +312,7 @@ export async function getUserProfile() {
           avatar_url: user.user_metadata?.avatar_url,
           plan: "free",
           searches_today: 0,
-          searches_limit: 20,
+          searches_limit: 5,
           leads_limit: 50,
         })
         .select()

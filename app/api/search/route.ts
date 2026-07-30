@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Business } from "@/types";
+import { createClient } from "@/lib/supabase/server";
 
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 
@@ -106,6 +107,43 @@ function extractState(addressComponents?: Array<{ long_name: string; types: stri
 }
 
 export async function GET(request: NextRequest) {
+  const supabase = createClient();
+
+const {
+  data: { user },
+} = await supabase.auth.getUser();
+
+if (!user) {
+  return NextResponse.json(
+    { error: "You must be logged in to search." },
+    { status: 401 }
+  );
+}
+const { data: profile, error: profileError } = await supabase
+  .from("user_profiles")
+  .select("plan, searches_today, searches_limit")
+  .eq("id", user.id)
+  .single();
+
+if (profileError || !profile) {
+  return NextResponse.json(
+    { error: "Could not load your search allowance." },
+    { status: 500 }
+  );
+}
+if (
+  profile.plan === "free" &&
+  profile.searches_today >= profile.searches_limit
+) {
+  return NextResponse.json(
+    {
+      error: `You have reached your daily limit of ${profile.searches_limit} searches. Try again tomorrow or upgrade your plan.`,
+      searchesToday: profile.searches_today,
+      searchesLimit: profile.searches_limit,
+    },
+    { status: 429 }
+  );
+}
   const searchParams = request.nextUrl.searchParams;
   const query = searchParams.get("q") || searchParams.get("type") || ""
   const city = searchParams.get("city") || "";
@@ -186,7 +224,27 @@ console.log("GEOCODING RESPONSE:", geoData);
       })
     );
 
-    return NextResponse.json({ businesses, count: businesses.length });
+   let updatedSearchCount = profile.searches_today;
+
+if (businesses.length > 0) {
+  const { data: newCount, error: countError } = await supabase.rpc(
+    "increment_search_count",
+    { user_id: user.id }
+  );
+
+  if (countError) {
+    console.error("Failed to update search count:", countError);
+  } else if (typeof newCount === "number") {
+    updatedSearchCount = newCount;
+  }
+}
+
+return NextResponse.json({
+  businesses,
+  count: businesses.length,
+  searchesToday: updatedSearchCount,
+  searchesLimit: profile.searches_limit,
+});
   } catch (error) {
     console.error("Google Places API error:", error);
     return NextResponse.json(

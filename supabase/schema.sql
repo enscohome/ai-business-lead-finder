@@ -1,4 +1,4 @@
--- AI Business Lead Finder - Supabase Database Schema
+ AI Business Lead Finder - Supabase Database Schema
 
 -- Enable Row Level Security
 ALTER DATABASE postgres SET "app.settings.jwt_secret" TO 'your-jwt-secret';
@@ -72,7 +72,7 @@ CREATE TABLE user_profiles (
   avatar_url TEXT,
   plan TEXT DEFAULT 'free' CHECK (plan IN ('free', 'pro', 'agency')),
   searches_today INTEGER DEFAULT 0,
-  searches_limit INTEGER DEFAULT 20,
+  searches_limit INTEGER DEFAULT 5,
   leads_limit INTEGER DEFAULT 50,
   team_id UUID,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -167,3 +167,34 @@ BEGIN
   RETURN current_count;
 END;
 $$ LANGUAGE plpgsql;
+-- Daily search usage
+CREATE TABLE IF NOT EXISTS public.daily_search_usage (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  usage_date DATE NOT NULL DEFAULT ((now() AT TIME ZONE 'Africa/Lagos')::date),
+  search_count INTEGER NOT NULL DEFAULT 0 CHECK (search_count >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (user_id, usage_date)
+);
+
+ALTER TABLE public.daily_search_usage ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own search usage"
+ON public.daily_search_usage
+FOR SELECT
+TO authenticated
+USING ((SELECT auth.uid()) = user_id);
+
+CREATE POLICY "Users can create their own search usage"
+ON public.daily_search_usage
+FOR INSERT
+TO authenticated
+WITH CHECK ((SELECT auth.uid()) = user_id);
+
+CREATE POLICY "Users can update their own search usage"
+ON public.daily_search_usage
+FOR UPDATE
+TO authenticated
+USING ((SELECT auth.uid()) = user_id)
+WITH CHECK ((SELECT auth.uid()) = user_id);

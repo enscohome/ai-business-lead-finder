@@ -19,6 +19,7 @@ function SearchPageContent() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [hasSearched, setHasSearched] = React.useState(false);
   const [searchCount, setSearchCount] = React.useState(0);
+  const [searchLimit, setSearchLimit] = React.useState(5);
   const [error, setError] = React.useState<string | null>(null);
 
   const query = searchParams.get("q") || "";
@@ -52,7 +53,13 @@ function SearchPageContent() {
 
       const response = await fetch(`/api/search?${params.toString()}`);
       const data = await response.json();
+if (typeof data.searchesToday === "number") {
+  setSearchCount(data.searchesToday);
+}
 
+if (typeof data.searchesLimit === "number") {
+  setSearchLimit(data.searchesLimit);
+}
       if (!response.ok) {
         throw new Error(data.error || "Search failed");
       }
@@ -63,10 +70,7 @@ function SearchPageContent() {
         const mockResults = searchBusinesses(query, city, undefined, "Nigeria");
         setBusinesses(mockResults);
 
-        // Update search count
-        const newCount = searchCount + 1;
-        setSearchCount(newCount);
-        localStorage.setItem("totalSearches", newCount.toString());
+       
 
         // Save to history
         saveToHistory(query, city, type, mockResults.length);
@@ -74,10 +78,7 @@ function SearchPageContent() {
       } else {
         setBusinesses(data.businesses);
 
-        // Update search count
-        const newCount = searchCount + 1;
-        setSearchCount(newCount);
-        localStorage.setItem("totalSearches", newCount.toString());
+        
 
         // Save to history
         saveToHistory(query, city, type, data.businesses.length);
@@ -146,7 +147,7 @@ function SearchPageContent() {
     }
   };
 
-  const isLimitReached = searchCount >= 20;
+const isLimitReached = searchCount >= searchLimit;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -158,6 +159,9 @@ function SearchPageContent() {
         <p className="text-muted-foreground">
           Find local businesses and discover sales opportunities
         </p>
+        <p className="text-sm text-muted-foreground">
+  {searchCount} of {searchLimit} searches used today
+</p>
       </div>
 
       <Card>

@@ -15,20 +15,20 @@ export default function DashboardPage() {
   const router = useRouter();
   const [savedLeads, setSavedLeads] = React.useState<SavedLead[]>([]);
   const [activities, setActivities] = React.useState<any[]>([]);
-
+const [totalSearches, setTotalSearches] = React.useState(0);
   React.useEffect(() => {
     const leads = JSON.parse(localStorage.getItem("savedLeads") || "[]");
     setSavedLeads(leads);
 
     const acts = JSON.parse(localStorage.getItem("activities") || "[]");
     setActivities(acts.slice(0, 5));
+    setTotalSearches(
+  parseInt(localStorage.getItem("totalSearches") || "0")
+);
   }, []);
 
   const stats = {
-    totalSearches:
-  typeof window !== "undefined"
-    ? parseInt(localStorage.getItem("totalSearches") || "0")
-    : 0,
+  totalSearches: totalSearches,
     savedLeads: savedLeads.length,
     contactedLeads: savedLeads.filter((l: SavedLead) => l.status === "contacted" || l.status === "interested" || l.status === "closed").length,
     closedDeals: savedLeads.filter((l: SavedLead) => l.status === "closed").length,
