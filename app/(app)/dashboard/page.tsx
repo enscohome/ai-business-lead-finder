@@ -10,6 +10,7 @@ import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { SearchBar } from "@/components/search/search-bar";
 import { SubscriptionPlans } from "@/components/subscription-plans";
 import { SavedLead } from "@/types";
+import { getUserProfile } from "@/lib/db";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -22,9 +23,11 @@ const [totalSearches, setTotalSearches] = React.useState(0);
 
     const acts = JSON.parse(localStorage.getItem("activities") || "[]");
     setActivities(acts.slice(0, 5));
-    setTotalSearches(
-  parseInt(localStorage.getItem("totalSearches") || "0")
-);
+  getUserProfile().then((profile) => {
+  if (profile) {
+    setTotalSearches(profile.searches_today || 0);
+  }
+});
   }, []);
 
   const stats = {

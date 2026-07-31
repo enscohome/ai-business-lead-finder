@@ -181,13 +181,16 @@ const isLimitReached = searchCount >= searchLimit;
         <div className="flex items-center gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-700">
           <AlertTriangle className="h-5 w-5 shrink-0" />
           <div>
-            <p className="font-medium">Daily search limit reached</p>
-            <p className="text-sm">You have used all 20 free searches today. Upgrade to Pro for unlimited searches.</p>
+          <p className="text-sm">
+  {`You have used all ${searchLimit} free searches today.`}
+  <br />
+  Upgrade to Pro for unlimited searches.
+</p>
           </div>
         </div>
       )}
 
-      {hasSearched && !isLoading && (
+     {hasSearched && !isLoading && !isLimitReached && (
         <div className="flex items-center gap-2">
           <Badge variant="outline" className="text-xs">{query || "All businesses"}</Badge>
           {city && <Badge variant="outline" className="text-xs">{city}</Badge>}
@@ -197,12 +200,14 @@ const isLimitReached = searchCount >= searchLimit;
 
       {!hasSearched && <SearchHistory />}
 
-      <SearchResults
-        businesses={businesses}
-        savedLeads={savedLeads}
-        onSaveLead={handleSaveLead}
-        isLoading={isLoading}
-      />
+     {!isLimitReached && (
+  <SearchResults
+    businesses={businesses}
+    savedLeads={savedLeads}
+    onSaveLead={handleSaveLead}
+    isLoading={isLoading}
+  />
+)}
     </div>
   );
 }
