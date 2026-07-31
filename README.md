@@ -1,4 +1,4 @@
-# AI Business Lead Finder
+# LeadPilot AI
 
 A modern SaaS web application that helps freelancers, agencies, and sales teams discover local businesses that are good candidates for websites, AI automation, and WhatsApp AI chatbot services.
 

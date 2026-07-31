@@ -45,7 +45,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2">
           <Sparkles className="h-6 w-6 text-primary" />
           <h1 className="text-3xl font-bold tracking-tight">
-            AI Business Lead Finder
+            LeadPilot AI
           </h1>
         </div>
         <p className="text-muted-foreground text-lg max-w-2xl">

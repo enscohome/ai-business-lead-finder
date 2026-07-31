@@ -1,6 +1,6 @@
 {
-  "name": "AI Business Lead Finder",
-  "short_name": "LeadFinder",
+  "name": "LeadPilot AI",
+  "short_name": "LeadPilot AI",
   "description": "AI-powered business discovery for freelancers and agencies",
   "start_url": "/",
   "display": "standalone",

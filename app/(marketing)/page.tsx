@@ -64,7 +64,7 @@ const testimonials = [
     name: "Amina Bello",
     role: "Digital Agency Owner",
     company: "Abuja",
-    text: "We use LeadFinder daily to fuel our sales pipeline. The opportunity scoring helps us prioritize the hottest leads first.",
+    text: "We use LeadPilot AI daily to fuel our sales pipeline. The opportunity scoring helps us prioritize the hottest leads first.",
     rating: 5,
   },
   {
@@ -105,7 +105,7 @@ export default function LandingPage() {
               <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
                 <Zap className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold">LeadFinder</span>
+              <span className="text-xl font-bold">LeadPilot AI</span>
             </div>
             <div className="hidden md:flex items-center gap-6">
               <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a>
@@ -366,7 +366,7 @@ export default function LandingPage() {
               Ready to Find Your Next Client?
             </h2>
             <p className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto">
-              Join 500+ freelancers and agencies who use LeadFinder to discover and close high-value clients every day.
+              Join 500+ freelancers and agencies who use LeadPilot AI to discover and close high-value clients every day.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="lg" className="h-12 px-8 text-lg" onClick={() => router.push("/auth/signup")}>
@@ -390,7 +390,7 @@ export default function LandingPage() {
                 <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
                   <Zap className="h-4 w-4 text-white" />
                 </div>
-                <span className="font-bold">LeadFinder</span>
+                <span className="font-bold">LeadPilot AI</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 AI-powered business discovery for freelancers and agencies.
@@ -422,7 +422,7 @@ export default function LandingPage() {
           </div>
           <Separator className="mb-8" />
           <p className="text-sm text-muted-foreground text-center">
-            © 2026 AI Business Lead Finder. All rights reserved.
+            © 2026 LeadPilot AI. All rights reserved.
           </p>
         </div>
       </footer>

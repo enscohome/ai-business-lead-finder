@@ -1,4 +1,4 @@
- AI Business Lead Finder - Supabase Database Schema
+ LeadPilot AI - Supabase Database Schema
 
 -- Enable Row Level Security
 ALTER DATABASE postgres SET "app.settings.jwt_secret" TO 'your-jwt-secret';

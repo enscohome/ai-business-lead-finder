@@ -4,28 +4,29 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 
 const inter = Inter({ subsets: ["latin"] });
+const publicAppUrl = process.env.NEXT_PUBLIC_APP_URL || "https://leadpilot.ai";
 
 export const metadata: Metadata = {
   title: {
-    default: "AI Business Lead Finder",
-    template: "%s | LeadFinder",
+    default: "LeadPilot AI",
+    template: "%s | LeadPilot AI",
   },
   description: "AI-powered business discovery platform for freelancers and agencies. Find local businesses that need websites, AI automation, and digital transformation.",
   keywords: ["lead finder", "business leads", "sales outreach", "AI automation", "freelancer tools", "agency software", "local business search"],
-  authors: [{ name: "LeadFinder" }],
-  creator: "LeadFinder",
-  metadataBase: new URL("https://leadfinder.app"),
+  authors: [{ name: "LeadPilot AI" }],
+  creator: "LeadPilot AI",
+  metadataBase: new URL(publicAppUrl),
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://leadfinder.app",
-    title: "AI Business Lead Finder",
+    url: publicAppUrl,
+    title: "LeadPilot AI",
     description: "Discover local businesses and generate AI-powered sales outreach",
-    siteName: "LeadFinder",
+    siteName: "LeadPilot AI",
   },
   twitter: {
     card: "summary_large_image",
-    title: "AI Business Lead Finder",
+    title: "LeadPilot AI",
     description: "AI-powered business discovery for freelancers and agencies",
   },
   robots: {
