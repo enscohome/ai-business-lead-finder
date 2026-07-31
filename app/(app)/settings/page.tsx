@@ -11,7 +11,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { SubscriptionPlans } from "@/components/subscription-plans";
 import { createClient } from "@/lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
@@ -157,7 +156,7 @@ const handleSaveChanges = async () => {
               </div>
             </CardContent>
           </Card>
-          <SubscriptionPlans />
+          <Button onClick={() => router.push("/pricing")}>View pricing and upgrade</Button>
         </TabsContent>
 
         <TabsContent value="security" className="space-y-4">

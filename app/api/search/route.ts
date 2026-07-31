@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { Business } from "@/types";
+import { Business, OpportunityService } from "@/types";
 import { createClient } from "@/lib/supabase/server";
+import { getServiceLabel, scoreOpportunity } from "@/lib/opportunity";
+import { ensureSubscriptionProfile } from "@/lib/subscription";
+import { getPlan, LAUNCH_COUNTRY } from "@/lib/plans";
 
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 
@@ -44,15 +47,6 @@ function determineWebsiteStatus(website?: string): "modern" | "outdated" | "none
     return "outdated";
   }
   return "modern";
-}
-
-function calculateOpportunityScore(websiteStatus: string): "low" | "medium" | "high" {
-  switch (websiteStatus) {
-    case "none": return "high";
-    case "outdated": return "medium";
-    case "modern": return "low";
-    default: return "medium";
-  }
 }
 
 function mapBusinessType(types: string[] = []): string {
@@ -119,27 +113,23 @@ if (!user) {
     { status: 401 }
   );
 }
-const { data: profile, error: profileError } = await supabase
-  .from("user_profiles")
-  .select("plan, searches_today, searches_limit")
-  .eq("id", user.id)
-  .single();
-
-if (profileError || !profile) {
+let profile;
+try {
+  profile = await ensureSubscriptionProfile(supabase, user);
+} catch {
   return NextResponse.json(
     { error: "Could not load your search allowance." },
     { status: 500 }
   );
 }
-if (
-  profile.plan === "free" &&
-  profile.searches_today >= profile.searches_limit
-) {
+const plan = getPlan(profile.plan);
+if (profile.searches_today >= plan.searchesPerMonth) {
   return NextResponse.json(
     {
-      error: `You have reached your daily limit of ${profile.searches_limit} searches. Try again tomorrow or upgrade your plan.`,
+      error: `You have reached your ${plan.name} limit of ${plan.searchesPerMonth} searches this month.`,
+      upgradeUrl: "/pricing",
       searchesToday: profile.searches_today,
-      searchesLimit: profile.searches_limit,
+      searchesLimit: plan.searchesPerMonth,
     },
     { status: 429 }
   );
@@ -147,8 +137,12 @@ if (
   const searchParams = request.nextUrl.searchParams;
   const query = searchParams.get("q") || searchParams.get("type") || ""
   const city = searchParams.get("city") || "";
+  const area = searchParams.get("area") || "";
   const state = searchParams.get("state") || "";
-  const country = searchParams.get("country") || "Nigeria";
+  const country = searchParams.get("country") || LAUNCH_COUNTRY;
+  const service = (searchParams.get("service") || "website-design") as OpportunityService;
+  const customService = searchParams.get("customService") || "";
+  if (country !== LAUNCH_COUNTRY) return NextResponse.json({ error: `${LAUNCH_COUNTRY} is the only supported launch country.` }, { status: 400 });
 
   if (!GOOGLE_PLACES_API_KEY) {
     return NextResponse.json(
@@ -159,19 +153,21 @@ if (
 
   try {
     // Step 1: Geocode the city to get coordinates
-    const geocodeQuery = city ? `${city}, ${state || country}` : query;
+    const locationParts = [area, city, state, country].filter(Boolean);
+    const geocodeQuery = locationParts.length > 1 ? locationParts.join(", ") : (city || query);
     const geocodeUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(geocodeQuery)}&key=${GOOGLE_PLACES_API_KEY}`;
 
     const geoRes = await fetch(geocodeUrl);
     const geoData = await geoRes.json();
-console.log("GEOCODING RESPONSE:", geoData);
-   if (geoData.status !== "OK" || !geoData.results[0]) {
-  return NextResponse.json({
-    error: geoData.error_message || geoData.status,
-    businesses: [],
-    count: 0,
-  });
-}
+    if (geoData.status === "ZERO_RESULTS" || !geoData.results?.[0]) {
+      return NextResponse.json({ businesses: [], count: 0, source: "google_places" });
+    }
+    if (geoData.status !== "OK") {
+      return NextResponse.json(
+        { error: "Google could not resolve the selected location.", businesses: [] },
+        { status: 502 }
+      );
+    }
     const location = geoData.results[0].geometry.location;
 
     // Step 2: Search for businesses near that location
@@ -181,8 +177,14 @@ console.log("GEOCODING RESPONSE:", geoData);
     const placesRes = await fetch(placesUrl);
     const placesData = await placesRes.json();
 
+    if (placesData.status === "ZERO_RESULTS") {
+      return NextResponse.json({ businesses: [], count: 0, source: "google_places" });
+    }
     if (placesData.status !== "OK" || !placesData.results) {
-      return NextResponse.json({ businesses: [], count: 0 });
+      return NextResponse.json(
+        { error: "Google Places search is temporarily unavailable.", businesses: [] },
+        { status: 502 }
+      );
     }
 
     // Step 3: Get details for each place (limited to 12 for performance)
@@ -201,6 +203,14 @@ console.log("GEOCODING RESPONSE:", geoData);
         const address = result.formatted_address || place.vicinity || "";
         const extractedCity = city || extractCity(result.address_components) || "";
         const extractedState = state || extractState(result.address_components) || "";
+        const opportunity = scoreOpportunity({
+          websiteStatus,
+          phone: result.formatted_phone_number || "",
+          rating: result.rating || place.rating,
+          reviewCount: result.user_ratings_total || place.user_ratings_total,
+          service,
+          customService,
+        });
 
         return {
           id: place.place_id,
@@ -208,12 +218,17 @@ console.log("GEOCODING RESPONSE:", geoData);
           phone: result.formatted_phone_number || "",
           address,
           city: extractedCity,
+          area: area || undefined,
           state: extractedState,
           country,
           businessType: mapBusinessType(place.types),
           website: result.website || null,
           websiteStatus,
-          opportunityScore: calculateOpportunityScore(websiteStatus),
+          opportunityScore: opportunity.score,
+          opportunityReasons: opportunity.reasons,
+          targetService: service,
+          targetServiceLabel: getServiceLabel(service, customService),
+          source: "google_places",
           googleMapsUrl: result.url || `https://www.google.com/maps/place/?q=place_id:${place.place_id}`,
           latitude: result.geometry?.location?.lat || location.lat,
           longitude: result.geometry?.location?.lng || location.lng,
@@ -243,7 +258,8 @@ return NextResponse.json({
   businesses,
   count: businesses.length,
   searchesToday: updatedSearchCount,
-  searchesLimit: profile.searches_limit,
+  searchesLimit: plan.searchesPerMonth,
+  source: "google_places",
 });
   } catch (error) {
     console.error("Google Places API error:", error);

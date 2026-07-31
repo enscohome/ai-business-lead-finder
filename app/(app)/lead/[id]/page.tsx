@@ -256,6 +256,7 @@ export default function LeadDetailPage() {
           <div className="flex items-center gap-2 flex-wrap">
             <Badge variant="outline">{business.businessType}</Badge>
             <Badge variant="outline">{business.city}, {business.state}</Badge>
+            {business.area && <Badge variant="outline">{business.area}</Badge>}
             {business.rating && (
               <div className="flex items-center gap-1 text-sm">
                 <Star className="h-4 w-4 fill-amber-400 text-amber-400" />
@@ -382,14 +383,13 @@ export default function LeadDetailPage() {
               </div>
               <div className="p-3 rounded-lg bg-muted/50 text-sm">
                 <p className="font-medium mb-1">AI Opportunity Score: {business.opportunityScore.toUpperCase()}</p>
-                <p className="text-muted-foreground">
-                  {business.opportunityScore === "high" 
-                    ? "This business has no website — a prime opportunity for web development and AI automation services."
-                    : business.opportunityScore === "medium"
-                    ? "This business has a website but it appears outdated — opportunity for redesign and modernization."
-                    : "This business has a modern website — focus on AI automation and WhatsApp chatbot upsells."
-                  }
-                </p>
+                <p className="text-muted-foreground mb-2">Service: {business.targetServiceLabel || "Digital services"}</p>
+                <ul className="space-y-1 text-muted-foreground list-disc pl-4">
+                  {(business.opportunityReasons?.length
+                    ? business.opportunityReasons
+                    : ["This score is based on the business's available website and listing signals."]
+                  ).map((reason) => <li key={reason}>{reason}</li>)}
+                </ul>
               </div>
             </CardContent>
           </Card>

@@ -350,65 +350,10 @@ export default function LandingPage() {
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">Simple, Transparent Pricing</h2>
             <p className="text-muted-foreground text-lg">Start free, upgrade when you are ready</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {[
-              {
-                name: "Free",
-                price: "$0",
-                period: "forever",
-                description: "Perfect for getting started",
-                features: ["20 searches/day", "50 saved leads", "Basic business info", "Email support"],
-                cta: "Get Started",
-                highlighted: false,
-              },
-              {
-                name: "Pro",
-                price: "$29",
-                period: "/month",
-                description: "For serious freelancers & agencies",
-                features: ["Unlimited searches", "Unlimited saved leads", "AI outreach generator", "Priority support", "Advanced filters", "CSV export"],
-                cta: "Start Pro Trial",
-                highlighted: true,
-              },
-              {
-                name: "Agency",
-                price: "$99",
-                period: "/month",
-                description: "For teams and enterprises",
-                features: ["Everything in Pro", "Team accounts (up to 10)", "CRM integrations", "API access", "White-label options", "Dedicated support"],
-                cta: "Contact Sales",
-                highlighted: false,
-              },
-            ].map((plan) => (
-              <Card key={plan.name} className={`relative flex flex-col ${plan.highlighted ? "border-primary shadow-lg scale-105 z-10" : ""}`}>
-                {plan.highlighted && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-primary text-primary-foreground">Most Popular</Badge>
-                  </div>
-                )}
-                <CardContent className="p-6 flex flex-col h-full">
-                  <div className="text-center mb-6">
-                    <h3 className="text-xl font-bold">{plan.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
-                    <div className="mt-4">
-                      <span className="text-4xl font-bold">{plan.price}</span>
-                      <span className="text-muted-foreground">{plan.period}</span>
-                    </div>
-                  </div>
-                  <ul className="space-y-3 mb-6 flex-1">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm">
-                        <Check className="h-4 w-4 text-emerald-500 shrink-0" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button variant={plan.highlighted ? "default" : "outline"} className="w-full" onClick={() => router.push("/auth/signup")}>
-                    {plan.cta}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="mx-auto max-w-2xl rounded-2xl border bg-card p-8 text-center shadow-sm">
+            <p className="text-lg font-medium">Plans from ₦0, built for Nigerian freelancers, teams, and agencies.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Compare monthly search, lead, AI outreach, export, and team allowances on the dedicated pricing page.</p>
+            <Button className="mt-6" onClick={() => router.push("/auth/signup")}>Create a free account to view plans</Button>
           </div>
         </div>
       </section>

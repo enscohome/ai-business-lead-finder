@@ -20,6 +20,19 @@ export default function LoginPage() {
   const [password, setPassword] = React.useState("");
   const [message, setMessage] = React.useState("");
 
+  const handleGoogleSignIn = async () => {
+    setIsLoading(true);
+    setMessage("");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback?next=/dashboard` },
+    });
+    if (error) {
+      setMessage(error.message);
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -56,6 +69,15 @@ export default function LoginPage() {
 
         <Card>
           <CardContent className="p-6">
+            <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
+              <span className="mr-2 font-bold text-blue-600">G</span>
+              Continue with Google
+            </Button>
+            <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
+              <div className="h-px flex-1 bg-border" />
+              <span>OR CONTINUE WITH EMAIL</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>

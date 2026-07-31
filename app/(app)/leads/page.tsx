@@ -10,6 +10,7 @@ import { BulkActions } from "@/components/leads/bulk-actions";
 import { EmptyState } from "@/components/empty-state";
 import { useLeads } from "@/hooks/use-db";
 import { SavedLead } from "@/types";
+import Link from "next/link";
 
 export default function LeadsPage() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function LeadsPage() {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState("all");
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(new Set());
+  const [exportError, setExportError] = React.useState("");
 
   const filteredLeads = leads.filter((lead) => {
     const matchesSearch = 
@@ -34,7 +36,10 @@ export default function LeadsPage() {
     setSelectedIds(newSet);
   };
 
-  const handleExportCSV = () => {
+  const handleExportCSV = async () => {
+    setExportError("");
+    const permission = await fetch("/api/account/usage", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ feature: "csv_export" }) });
+    if (!permission.ok) { const data = await permission.json(); setExportError(data.error || "CSV export is unavailable on your plan."); return; }
     const csv = exportToCSV();
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -77,6 +82,7 @@ export default function LeadsPage() {
           </Button>
         </div>
       </div>
+      {exportError && <p className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-700">{exportError} <Link href="/pricing" className="font-medium underline">View plans</Link></p>}
 
       <LeadFilters
         searchQuery={searchQuery}

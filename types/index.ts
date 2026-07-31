@@ -1,15 +1,31 @@
+export type OpportunityScore = "low" | "medium" | "high";
+
+export type OpportunityService =
+  | "website-design"
+  | "ai-automation"
+  | "seo"
+  | "social-media-management"
+  | "graphic-design"
+  | "digital-marketing"
+  | "other";
+
 export interface Business {
   id: string;
   name: string;
   phone: string;
   address: string;
   city: string;
+  area?: string;
   state: string;
   country: string;
   businessType: string;
   website: string | null;
   websiteStatus: "modern" | "outdated" | "none";
-  opportunityScore: "low" | "medium" | "high";
+  opportunityScore: OpportunityScore;
+  opportunityReasons: string[];
+  targetService: OpportunityService;
+  targetServiceLabel: string;
+  source?: "google_places" | "demo";
   googleMapsUrl: string;
   latitude: number;
   longitude: number;
@@ -35,6 +51,7 @@ export interface SearchHistory {
   userId: string;
   query: string;
   city: string;
+  area?: string;
   state: string;
   country: string;
   businessType: string;
@@ -47,7 +64,7 @@ export interface UserProfile {
   email: string;
   fullName: string | null;
   avatarUrl: string | null;
-  plan: "free" | "pro" | "agency";
+  plan: "free" | "starter" | "pro" | "agency";
   searchesToday: number;
   searchesLimit: number;
   createdAt: string;

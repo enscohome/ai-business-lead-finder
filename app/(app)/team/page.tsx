@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 interface TeamMember {
   id: string;
@@ -52,10 +53,12 @@ export default function TeamPage() {
   const [inviteRole, setInviteRole] = React.useState("member");
   const [isInviting, setIsInviting] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
+  const [teamLimit, setTeamLimit] = React.useState(1);
+  React.useEffect(() => { fetch("/api/account/usage").then(response => response.ok ? response.json() : null).then(usage => usage && setTeamLimit(usage.plan.teamMembers)); }, []);
 
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inviteEmail.trim()) return;
+    if (!inviteEmail.trim() || teamLimit < 2 || members.length + 1 >= teamLimit) return;
 
     setIsInviting(true);
     setTimeout(() => {
@@ -114,7 +117,7 @@ export default function TeamPage() {
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button>
+            <Button disabled={teamLimit < 2 || members.length + 1 >= teamLimit}>
               <Plus className="h-4 w-4 mr-2" />
               Invite Member
             </Button>
@@ -190,7 +193,7 @@ export default function TeamPage() {
       <Card>
         <CardHeader>
           <CardTitle>Team Members</CardTitle>
-          <CardDescription>{members.length} of 10 seats used</CardDescription>
+          <CardDescription>{members.length + 1} of {teamLimit} seats used (including you)</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -255,10 +258,8 @@ export default function TeamPage() {
           </div>
           <Separator className="my-4" />
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>Need more seats?</span>
-            <Button variant="link" size="sm" className="h-auto p-0">
-              Upgrade to Enterprise
-            </Button>
+            <span>{teamLimit < 2 ? "Team access is available on Agency." : "Agency includes up to 3 members."}</span>
+            {teamLimit < 2 && <Button asChild variant="link" size="sm" className="h-auto p-0"><Link href="/pricing">View Agency</Link></Button>}
           </div>
         </CardContent>
       </Card>

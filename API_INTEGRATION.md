@@ -83,42 +83,12 @@ The OpenAI integration is already built in `lib/openai.ts`. To enable it:
 
 2. The lead detail page will automatically use OpenAI when the flag is set.
 
-## Stripe Integration (Subscriptions)
+## Paystack Integration (Subscriptions)
 
-1. Install Stripe:
-   ```bash
-   npm install stripe @stripe/stripe-js
-   ```
+1. Create monthly test plans in the verified adult-owned Paystack merchant account.
+2. Add only test keys and plan codes to the local environment variables documented in `.env.local.example`.
+3. Apply the staged Supabase migration through the normal reviewed migration workflow.
+4. Configure the Paystack test webhook URL as `/api/webhooks/paystack`.
+5. Checkout is initialized by `/api/checkout`; successful browser returns are independently verified by `/api/payments/paystack/callback` before access is granted.
 
-2. Create checkout session:
-   ```typescript
-   // app/api/checkout/route.ts
-   import Stripe from "stripe";
-   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
-   export async function POST(req: Request) {
-     const session = await stripe.checkout.sessions.create({
-       mode: "subscription",
-       line_items: [{ price: "price_xxx", quantity: 1 }],
-       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings?success=true`,
-       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings?canceled=true`,
-     });
-     return Response.json({ url: session.url });
-   }
-   ```
-
-3. Webhook to update user plan:
-   ```typescript
-   // app/api/webhooks/stripe/route.ts
-   export async function POST(req: Request) {
-     const event = stripe.webhooks.constructEvent(
-       await req.text(),
-       req.headers.get("stripe-signature")!,
-       process.env.STRIPE_WEBHOOK_SECRET!
-     );
-
-     if (event.type === "checkout.session.completed") {
-       // Update user profile plan to "pro"
-     }
-   }
-   ```
+The secret key is server-only. Plan access is granted only after a verified successful Paystack transaction or signed successful recurring-charge webhook.
