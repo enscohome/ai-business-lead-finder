@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Business } from "@/types";
 import { getOpportunityColor, formatPhoneNumber } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { GoogleMapsAttribution } from "@/components/google-maps-attribution";
 
 interface BusinessCardProps {
   business: Business;
@@ -135,6 +136,7 @@ export function BusinessCard({ business, onSave, isSaved }: BusinessCardProps) {
             {isSaved ? "Saved" : "Save"}
           </Button>
         </div>
+        {business.source === "google_places" && <GoogleMapsAttribution className="mt-3 border-t pt-3" />}
       </CardContent>
     </Card>
   );

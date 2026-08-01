@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getServiceLabel, scoreOpportunity } from "@/lib/opportunity";
 import { ensureSubscriptionProfile } from "@/lib/subscription";
 import { getPlan, LAUNCH_COUNTRY } from "@/lib/plans";
+import { enforceCountryFeature } from "@/lib/country-access";
 
 const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 
@@ -142,7 +143,8 @@ if (profile.searches_today >= plan.searchesPerMonth) {
   const country = searchParams.get("country") || LAUNCH_COUNTRY;
   const service = (searchParams.get("service") || "website-design") as OpportunityService;
   const customService = searchParams.get("customService") || "";
-  if (country !== LAUNCH_COUNTRY) return NextResponse.json({ error: `${LAUNCH_COUNTRY} is the only supported launch country.` }, { status: 400 });
+  const access = await enforceCountryFeature(supabase, user, "business_search", country);
+  if (!access.allowed) return access.response;
 
   if (!GOOGLE_PLACES_API_KEY) {
     return NextResponse.json(
@@ -260,6 +262,13 @@ return NextResponse.json({
   searchesToday: updatedSearchCount,
   searchesLimit: plan.searchesPerMonth,
   source: "google_places",
+  provenance: {
+    provider: "google_places",
+    permittedUse: "transient_display_requires_review",
+    attributionRequired: true,
+    retrievedAt: new Date().toISOString(),
+    expiresAt: new Date(Date.now() + Math.max(1, Number(process.env.GOOGLE_PLACES_TRANSIENT_CACHE_MINUTES || "15")) * 60_000).toISOString(),
+  },
 });
   } catch (error) {
     console.error("Google Places API error:", error);

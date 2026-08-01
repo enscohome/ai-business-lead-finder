@@ -3,6 +3,7 @@
 import * as React from "react";
 import { Business, SavedLead } from "@/types";
 import { generateId } from "@/lib/utils";
+import { savedLeadWithoutProviderSnapshot } from "@/lib/provider-data";
 
 // This hook provides a unified interface that works with or without Supabase
 // When Supabase is connected, it calls server actions
@@ -17,8 +18,10 @@ export function useLeads() {
   }, []);
 
   const loadLeads = () => {
-    const stored = JSON.parse(localStorage.getItem("savedLeads") || "[]");
-    setLeads(stored);
+    const stored: SavedLead[] = JSON.parse(localStorage.getItem("savedLeads") || "[]");
+    const remediated = stored.map((lead) => lead.business?.source === "google_places" ? { ...savedLeadWithoutProviderSnapshot(lead.business, lead.userId), id: lead.id, businessId: lead.businessId, notes: lead.notes, tags: lead.tags, status: lead.status, createdAt: lead.createdAt, updatedAt: lead.updatedAt } : lead);
+    localStorage.setItem("savedLeads", JSON.stringify(remediated));
+    setLeads(remediated);
     setIsLoading(false);
   };
 
@@ -33,17 +36,7 @@ export function useLeads() {
       return false;
     }
 
-    const newLead: SavedLead = {
-      id: generateId(),
-      userId: "user-1",
-      businessId: business.id,
-      business,
-      notes: "",
-      status: "new",
-      tags: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    const newLead = savedLeadWithoutProviderSnapshot(business);
 
     const updated = [newLead, ...leads];
     setLeads(updated);
@@ -85,25 +78,13 @@ export function useLeads() {
   };
 
   const exportToCSV = (): string => {
-    const headers = [
-      "Business Name", "Business Type", "Phone", "Address", "City", "State",
-      "Country", "Website", "Website Status", "Opportunity Score",
-      "Lead Status", "Notes", "Saved Date",
-    ];
+    const headers = ["Provider Record ID", "Lead Status", "Notes", "Tags", "Saved Date"];
 
     const rows = leads.map((lead) => [
-      lead.business.name,
-      lead.business.businessType,
-      lead.business.phone,
-      lead.business.address,
-      lead.business.city,
-      lead.business.state,
-      lead.business.country,
-      lead.business.website || "",
-      lead.business.websiteStatus,
-      lead.business.opportunityScore,
+      lead.businessId,
       lead.status,
       lead.notes,
+      lead.tags.join(", "),
       new Date(lead.createdAt).toLocaleDateString(),
     ]);
 

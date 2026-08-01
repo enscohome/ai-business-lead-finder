@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { safeExternalUrl, sanitizeText } from "@/lib/freelancer";
+import { enforceCountryFeature } from "@/lib/country-access";
 
 const allowed = new Set([
   "image/jpeg",
@@ -66,6 +67,8 @@ export async function POST(request: NextRequest) {
   } = await supabase.auth.getUser();
   if (!user?.email)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const access = await enforceCountryFeature(supabase, user, "verification");
+  if (!access.allowed) return access.response;
   try {
     const form = await request.formData();
     const document = form.get("document");

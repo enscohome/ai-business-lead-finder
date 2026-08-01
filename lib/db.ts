@@ -64,26 +64,29 @@ export async function saveLead(business: Business): Promise<SavedLead | null> {
       return null;
     }
 
-    // First, save or update the business
+    // Google provider content remains transient. Persist the provider record ID and
+    // neutral placeholders only; user-created CRM data lives in saved_leads.
+    const isGoogle = business.source === "google_places";
     const { error: bizError } = await supabase
       .from("businesses")
       .upsert({
         id: business.id,
-        name: business.name,
-        phone: business.phone,
-        address: business.address,
-        city: business.city,
-        state: business.state,
-        country: business.country,
-        business_type: business.businessType,
-        website: business.website,
-        website_status: business.websiteStatus,
-        opportunity_score: business.opportunityScore,
-        google_maps_url: business.googleMapsUrl,
-        latitude: business.latitude,
-        longitude: business.longitude,
-        rating: business.rating,
-        review_count: business.reviewCount,
+        name: isGoogle ? "Provider business record" : business.name,
+        phone: isGoogle ? null : business.phone,
+        address: isGoogle ? null : business.address,
+        city: isGoogle ? "" : business.city,
+        state: isGoogle ? null : business.state,
+        country: isGoogle ? "Nigeria" : business.country,
+        business_type: isGoogle ? "Business" : business.businessType,
+        website: isGoogle ? null : business.website,
+        website_status: isGoogle ? "none" : business.websiteStatus,
+        opportunity_score: isGoogle ? "low" : business.opportunityScore,
+        google_maps_url: null,
+        latitude: isGoogle ? null : business.latitude,
+        longitude: isGoogle ? null : business.longitude,
+        rating: isGoogle ? null : business.rating,
+        review_count: isGoogle ? 0 : business.reviewCount,
+        source: business.source,
       });
 
     if (bizError) throw bizError;

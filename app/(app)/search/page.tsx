@@ -12,6 +12,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sparkles, AlertTriangle, X } from "lucide-react";
 import Link from "next/link";
+import { savedLeadWithoutProviderSnapshot } from "@/lib/provider-data";
 
 function SearchPageContent() {
   const router = useRouter();
@@ -198,17 +199,7 @@ if (typeof data.searchesLimit === "number") {
         setError(`You have reached your limit of ${savedLeadLimit} saved leads. Upgrade your plan to save more.`);
         return;
       }
-      const newLead: SavedLead = {
-        id: generateId(),
-        userId: "user-1",
-        businessId: business.id,
-        business,
-        notes: "",
-        status: "new",
-        tags: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      const newLead = savedLeadWithoutProviderSnapshot(business);
       const updated = [newLead, ...savedLeads];
       setSavedLeads(updated);
       localStorage.setItem("savedLeads", JSON.stringify(updated));

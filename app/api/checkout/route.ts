@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getPlan, isPlanId } from "@/lib/plans";
 import { getPaystackPlanCode, isPaystackTestConfigurationReady, paystackRequest } from "@/lib/paystack";
+import { enforceCountryFeature } from "@/lib/country-access";
 
 const SETUP_MESSAGE = "Payment setup is not complete yet.";
 const jsonError = (message: string, status: number, code: string) => NextResponse.json({ error: message, code }, { status });
@@ -17,6 +18,8 @@ export async function POST(request: NextRequest) {
     const supabase = createClient();
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user?.email) return jsonError("Please sign in before upgrading.", 401, "AUTH_REQUIRED");
+    const access = await enforceCountryFeature(supabase, user, "subscriptions");
+    if (!access.allowed) return access.response;
     const { error: migrationError } = await supabase.from("user_profiles").select("subscription_status, paystack_customer_code").eq("id", user.id).limit(1);
     if (migrationError) return jsonError(SETUP_MESSAGE, 503, "PAYMENT_SETUP_INCOMPLETE");
 

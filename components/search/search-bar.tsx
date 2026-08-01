@@ -136,6 +136,7 @@ export function SearchBar({ className, variant = "compact" }: SearchBarProps) {
                 searchPlaceholder="Search countries..."
                 className={cn(isHero && "h-14")}
               />
+              <p className="w-full text-xs text-muted-foreground">Nigeria is currently available. Other countries remain unavailable until regional technical and legal review is approved.</p>
 
               <SearchableSelect
                 value={state}

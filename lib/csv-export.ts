@@ -2,19 +2,7 @@ import { SavedLead, Business } from "@/types";
 
 export function exportLeadsToCSV(leads: SavedLead[]): string {
   const headers = [
-    "Business Name",
-    "Business Type",
-    "Phone",
-    "Address",
-    "City",
-    "State",
-    "Country",
-    "Website",
-    "Website Status",
-    "Opportunity Score",
-    "Google Maps URL",
-    "Rating",
-    "Review Count",
+    "Provider Record ID",
     "Lead Status",
     "Notes",
     "Tags",
@@ -22,19 +10,7 @@ export function exportLeadsToCSV(leads: SavedLead[]): string {
   ];
 
   const rows = leads.map((lead) => [
-    lead.business.name,
-    lead.business.businessType,
-    lead.business.phone,
-    lead.business.address,
-    lead.business.city,
-    lead.business.state,
-    lead.business.country,
-    lead.business.website || "",
-    lead.business.websiteStatus,
-    lead.business.opportunityScore,
-    lead.business.googleMapsUrl,
-    lead.business.rating?.toString() || "",
-    lead.business.reviewCount?.toString() || "",
+    lead.businessId,
     lead.status,
     lead.notes,
     lead.tags.join(", "),
@@ -64,44 +40,6 @@ export function downloadCSV(content: string, filename: string) {
 }
 
 export function exportBusinessesToCSV(businesses: Business[]): string {
-  const headers = [
-    "Business Name",
-    "Business Type",
-    "Phone",
-    "Address",
-    "City",
-    "State",
-    "Country",
-    "Website",
-    "Website Status",
-    "Opportunity Score",
-    "Google Maps URL",
-    "Rating",
-    "Review Count",
-  ];
-
-  const rows = businesses.map((biz) => [
-    biz.name,
-    biz.businessType,
-    biz.phone,
-    biz.address,
-    biz.city,
-    biz.state,
-    biz.country,
-    biz.website || "",
-    biz.websiteStatus,
-    biz.opportunityScore,
-    biz.googleMapsUrl,
-    biz.rating?.toString() || "",
-    biz.reviewCount?.toString() || "",
-  ]);
-
-  const csvContent = [
-    headers.join(","),
-    ...rows.map((row) =>
-      row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")
-    ),
-  ].join("\n");
-
-  return csvContent;
+  void businesses;
+  return '"Export unavailable"\n"Google-derived business fields are restricted pending provider licensing confirmation."';
 }
