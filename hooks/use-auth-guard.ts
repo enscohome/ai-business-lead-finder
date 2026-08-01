@@ -4,7 +4,7 @@ import * as React from "react";
 import { useRouter, usePathname } from "next/navigation";
 
 const PUBLIC_ROUTES = ["/", "/auth/login", "/auth/signup"];
-const AUTH_ROUTES = ["/dashboard", "/search", "/leads", "/lead", "/settings", "/team"];
+const AUTH_ROUTES = ["/dashboard", "/search", "/leads", "/lead", "/settings", "/team", "/profile", "/client-reviews", "/admin"];
 
 export function useAuthGuard() {
   const router = useRouter();

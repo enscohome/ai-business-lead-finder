@@ -13,6 +13,8 @@ import {
   Menu,
   X,
   Building2,
+  UserCircle,
+  Star,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
@@ -21,6 +23,8 @@ const navigation = [
   { name: "Dashboard", href: "/dashboard", icon: BarChart3 },
   { name: "Search Leads", href: "/search", icon: Search },
   { name: "Saved Leads", href: "/leads", icon: Users },
+  { name: "Freelancer Profile", href: "/profile", icon: UserCircle },
+  { name: "Client Reviews", href: "/client-reviews", icon: Star },
   { name: "Team", href: "/team", icon: Building2 },
 ];
 

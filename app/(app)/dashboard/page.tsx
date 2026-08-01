@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Search, TrendingUp, ArrowRight, Sparkles } from "lucide-react";
+import { Search, TrendingUp, ArrowRight, Sparkles, UserCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -20,6 +20,7 @@ export default function DashboardPage() {
   const [plan, setPlan] = React.useState("free");
   const [searchLimit, setSearchLimit] = React.useState(20);
   const [leadsLimit, setLeadsLimit] = React.useState<number | null>(5);
+  const [profileCompletion, setProfileCompletion] = React.useState(0);
   React.useEffect(() => {
     const leads = JSON.parse(localStorage.getItem("savedLeads") || "[]");
     setSavedLeads(leads);
@@ -29,6 +30,7 @@ export default function DashboardPage() {
   fetch("/api/account/usage").then(response => response.ok ? response.json() : null).then((usage) => {
     if (usage) { setTotalSearches(usage.searchesUsed); setPlan(usage.plan.id); setSearchLimit(usage.searchesLimit); setLeadsLimit(usage.savedLeadsLimit); }
   });
+  fetch("/api/freelancer/profile").then(response => response.ok ? response.json() : null).then(data => setProfileCompletion(data?.profile?.profileCompletionPercentage || 0));
   }, []);
 
   const stats = {
@@ -66,7 +68,7 @@ export default function DashboardPage() {
       <StatsCards {...stats} />
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push("/search")}>
           <CardContent className="p-6 flex items-center justify-between">
             <div>
@@ -87,6 +89,12 @@ export default function DashboardPage() {
             <div className="p-3 rounded-full bg-emerald-500/10">
               <TrendingUp className="h-5 w-5 text-emerald-600" />
             </div>
+          </CardContent>
+        </Card>
+        <Card className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => router.push("/profile")}>
+          <CardContent className="p-6 flex items-center justify-between">
+            <div><CardTitle className="text-lg mb-1">Freelancer Profile</CardTitle><CardDescription>{profileCompletion}% complete · Build your shareable portfolio</CardDescription></div>
+            <div className="p-3 rounded-full bg-indigo-500/10"><UserCircle className="h-5 w-5 text-indigo-600" /></div>
           </CardContent>
         </Card>
       </div>
