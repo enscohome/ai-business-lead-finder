@@ -15,6 +15,7 @@ import {
 import { SavedLead } from "@/types";
 import { getStatusColor, getOpportunityColor, formatPhoneNumber } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { GoogleMapsAttribution } from "@/components/google-maps-attribution";
 
 interface LeadCardProps {
   lead: SavedLead;
@@ -164,6 +165,7 @@ export function LeadCard({ lead, onUpdateStatus, onDelete, onEditNotes }: LeadCa
             WhatsApp
           </Button>
         </div>
+        {lead.business.source === "google_places" && <GoogleMapsAttribution className="mt-3 border-t pt-3" />}
       </CardContent>
     </Card>
   );

@@ -1,0 +1,1 @@
+export function GoogleMapsAttribution({className=""}:{className?:string}){return <div className={`text-xs text-muted-foreground ${className}`} aria-label="Google Maps attribution"><span className="font-semibold text-foreground">Google Maps</span><span> · Business information is provided by Google Maps and is not verified or owned by LeadPilot AI.</span></div>}

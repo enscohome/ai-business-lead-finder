@@ -4,12 +4,15 @@ import { generateAllSalesTools } from "@/lib/ai-tools";
 import { createClient } from "@/lib/supabase/server";
 import { ensureSubscriptionProfile } from "@/lib/subscription";
 import { getPlan } from "@/lib/plans";
+import { enforceCountryFeature } from "@/lib/country-access";
 
 export async function POST(request: NextRequest) {
   try {
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "You must be logged in to generate outreach messages." }, { status: 401 });
+    const access = await enforceCountryFeature(supabase, user, "ai_outreach");
+    if (!access.allowed) return access.response;
     const profile = await ensureSubscriptionProfile(supabase, user);
     const plan = getPlan(profile.plan);
     if ((profile.ai_messages_used || 0) >= plan.aiMessagesPerMonth) return NextResponse.json({ error: `You have reached your ${plan.name} AI outreach limit for this month.`, upgradeUrl: "/pricing" }, { status: 429 });

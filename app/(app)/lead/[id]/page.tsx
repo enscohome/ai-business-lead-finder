@@ -18,6 +18,8 @@ import { getOpportunityColor, formatPhoneNumber, generateId } from "@/lib/utils"
 import { generateAllSalesTools } from "@/lib/ai-tools";
 import { generateAllAItools } from "@/lib/openai";
 import { cn } from "@/lib/utils";
+import { savedLeadWithoutProviderSnapshot } from "@/lib/provider-data";
+import { GoogleMapsAttribution } from "@/components/google-maps-attribution";
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = React.useState(false);
@@ -167,17 +169,7 @@ export default function LeadDetailPage() {
       localStorage.setItem("savedLeads", JSON.stringify(updated));
       setIsSaved(false);
     } else {
-      const newLead: SavedLead = {
-        id: generateId(),
-        userId: "user-1",
-        businessId: business.id,
-        business,
-        notes: "",
-        status: "new",
-        tags: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      };
+      const newLead = savedLeadWithoutProviderSnapshot(business);
       const updated = [newLead, ...savedLeads];
       setSavedLeads(updated);
       localStorage.setItem("savedLeads", JSON.stringify(updated));
@@ -275,6 +267,7 @@ export default function LeadDetailPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {business.source === "google_places" && <div className="lg:col-span-3"><GoogleMapsAttribution /></div>}
         {/* Left Column - Business Info */}
         <div className="lg:col-span-1 space-y-4">
           <Card>

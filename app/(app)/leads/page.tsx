@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/empty-state";
 import { useLeads } from "@/hooks/use-db";
 import { SavedLead } from "@/types";
 import Link from "next/link";
+import { GOOGLE_EXPORT_RESTRICTION } from "@/lib/provider-data";
 
 export default function LeadsPage() {
   const router = useRouter();
@@ -83,6 +84,7 @@ export default function LeadsPage() {
         </div>
       </div>
       {exportError && <p className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-3 text-sm text-amber-700">{exportError} <Link href="/pricing" className="font-medium underline">View plans</Link></p>}
+      <p className="rounded-lg border bg-muted/40 p-3 text-xs text-muted-foreground">{GOOGLE_EXPORT_RESTRICTION} CSV exports contain only your provider record reference and user-created CRM fields.</p>
 
       <LeadFilters
         searchQuery={searchQuery}
