@@ -1,5 +1,6 @@
-import { Business } from "@/types";
+import { Business, OpportunityService } from "@/types";
 import { generateId } from "./utils";
+import { getServiceLabel, scoreOpportunity } from "./opportunity";
 
 const businessTypes = [
   "Restaurant", "Hotel", "Salon", "Pharmacy", "Cafe", "Bakery",
@@ -96,21 +97,15 @@ function determineWebsiteStatus(): { status: "modern" | "outdated" | "none"; has
   return { status: "modern", hasWebsite: true };
 }
 
-function calculateOpportunityScore(websiteStatus: string): "low" | "medium" | "high" {
-  switch (websiteStatus) {
-    case "none": return "high";
-    case "outdated": return "medium";
-    case "modern": return "low";
-    default: return "medium";
-  }
-}
-
 export function generateMockBusinesses(
   businessType: string,
   city: string,
   state: string,
   country: string = "Nigeria",
-  count: number = 12
+  count: number = 12,
+  service: OpportunityService = "website-design",
+  customService: string = "",
+  area: string = ""
 ): Business[] {
   const cityData = nigerianCities.find(
     (c) => c.name.toLowerCase() === city.toLowerCase()
@@ -125,23 +120,35 @@ export function generateMockBusinesses(
     const lat = cityData.lat + (Math.random() - 0.5) * 0.1;
     const lng = cityData.lng + (Math.random() - 0.5) * 0.1;
 
+    const phone = generatePhone();
+    const rating = Number((3 + Math.random() * 2).toFixed(1));
+    const reviewCount = Math.floor(Math.random() * 200);
+    const opportunity = scoreOpportunity({ websiteStatus, phone, rating, reviewCount, service, customService });
+
     businesses.push({
       id: generateId(),
       name,
-      phone: generatePhone(),
-      address: generateAddress(cityData.name, cityData.state),
+      phone,
+      address: area
+        ? `${area}, ${generateAddress(cityData.name, cityData.state)}`
+        : generateAddress(cityData.name, cityData.state),
       city: cityData.name,
+      area: area || undefined,
       state: cityData.state,
       country,
       businessType: type,
       website: generateWebsite(name, hasWebsite),
       websiteStatus,
-      opportunityScore: calculateOpportunityScore(websiteStatus),
+      opportunityScore: opportunity.score,
+      opportunityReasons: opportunity.reasons,
+      targetService: service,
+      targetServiceLabel: getServiceLabel(service, customService),
+      source: "demo",
       googleMapsUrl: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
       latitude: lat,
       longitude: lng,
-      rating: Number((3 + Math.random() * 2).toFixed(1)),
-      reviewCount: Math.floor(Math.random() * 200),
+      rating,
+      reviewCount,
       createdAt: new Date().toISOString(),
     });
   }
@@ -153,7 +160,10 @@ export function searchBusinesses(
   query: string,
   city?: string,
   state?: string,
-  country: string = "Nigeria"
+  country: string = "Nigeria",
+  service: string = "website-design",
+  customService: string = "",
+  area: string = ""
 ): Business[] {
   const normalizedQuery = query.toLowerCase().trim();
 
@@ -189,5 +199,14 @@ export function searchBusinesses(
     businessType = businessTypes[Math.floor(Math.random() * 10)];
   }
 
-  return generateMockBusinesses(businessType, searchCity, searchState, country, 12);
+  return generateMockBusinesses(
+    businessType,
+    searchCity,
+    searchState,
+    country,
+    12,
+    service as OpportunityService,
+    customService,
+    area
+  );
 }

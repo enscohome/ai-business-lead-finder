@@ -11,7 +11,12 @@ interface SearchHistoryItem {
   id: string;
   query: string;
   city: string;
+  area?: string;
+  state?: string;
+  country?: string;
   businessType: string;
+  service?: string;
+  customService?: string;
   resultCount: number;
   timestamp: string;
 }
@@ -34,7 +39,12 @@ export function SearchHistory() {
     const params = new URLSearchParams();
     if (item.query) params.set("q", item.query);
     if (item.city) params.set("city", item.city);
+    if (item.area) params.set("area", item.area);
+    if (item.state) params.set("state", item.state);
+    if (item.country) params.set("country", item.country);
     if (item.businessType) params.set("type", item.businessType);
+    if (item.service) params.set("service", item.service);
+    if (item.customService) params.set("customService", item.customService);
     router.push(`/search?${params.toString()}`);
   };
 
@@ -73,6 +83,7 @@ export function SearchHistory() {
               </div>
               <div className="flex gap-1">
                 {item.city && <Badge variant="outline" className="text-xs">{item.city}</Badge>}
+                {item.area && <Badge variant="outline" className="text-xs">{item.area}</Badge>}
                 {item.businessType && <Badge variant="outline" className="text-xs">{item.businessType}</Badge>}
               </div>
             </button>

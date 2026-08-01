@@ -211,7 +211,8 @@ export async function saveSearchHistory(
   state: string,
   country: string,
   businessType: string,
-  resultCount: number
+  resultCount: number,
+  area: string = ""
 ): Promise<void> {
   try {
     const supabase = createClient();
@@ -224,6 +225,7 @@ export async function saveSearchHistory(
           id: crypto.randomUUID(),
           query: query || `${businessType || "Businesses"} in ${city}`,
           city,
+          area,
           state,
           country,
           businessType,
@@ -237,7 +239,7 @@ export async function saveSearchHistory(
 
     await supabase.from("search_history").insert({
       user_id: user.id,
-      query,
+      query: area ? `${query || businessType || "Businesses"} in ${area}` : query,
       city,
       state,
       country,
@@ -312,8 +314,8 @@ export async function getUserProfile() {
           avatar_url: user.user_metadata?.avatar_url,
           plan: "free",
           searches_today: 0,
-          searches_limit: 5,
-          leads_limit: 50,
+          searches_limit: 20,
+          leads_limit: 5,
         })
         .select()
         .single();

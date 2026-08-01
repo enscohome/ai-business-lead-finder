@@ -21,10 +21,12 @@ export function Header() {
   const router = useRouter();
   const supabase = createClient();
 const [user, setUser] = React.useState<SupabaseUser | null>(null);
+const [planName, setPlanName] = React.useState("Free Plan");
 
 React.useEffect(() => {
   supabase.auth.getUser().then(({ data }) => {
     setUser(data.user);
+    if (data.user) fetch("/api/account/usage").then(response => response.ok ? response.json() : null).then(usage => usage && setPlanName(usage.plan.name));
   });
 }, []);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -59,9 +61,13 @@ const handleLogout = async () => {
 
         {/* Right section */}
         <div className="flex items-center gap-2">
+          <Button size="sm" onClick={() => router.push("/pricing")} className="hidden sm:inline-flex">
+            <Crown className="h-4 w-4 mr-2" />
+            Upgrade Plan
+          </Button>
           <Badge variant="secondary" className="hidden sm:flex items-center gap-1">
             <Crown className="h-3 w-3 text-amber-500" />
-            Free Plan
+            {planName}
           </Badge>
 
           <Button variant="ghost" size="icon" className="relative">
@@ -95,7 +101,7 @@ const handleLogout = async () => {
   <User className="mr-2 h-4 w-4" />
   Profile
 </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => router.push("/pricing")}>
                 <Crown className="mr-2 h-4 w-4 text-amber-500" />
                 Upgrade Plan
               </DropdownMenuItem>

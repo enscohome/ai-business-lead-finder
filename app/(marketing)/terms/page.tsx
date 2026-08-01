@@ -6,10 +6,10 @@ export default function TermsPage() {
         <p className="text-muted-foreground">Last updated: July 24, 2026</p>
 
         <h2 className="text-xl font-semibold mt-8 mb-4">1. Acceptance of Terms</h2>
-        <p>By accessing or using AI Business Lead Finder, you agree to be bound by these Terms of Service.</p>
+        <p>By accessing or using LeadPilot AI, you agree to be bound by these Terms of Service.</p>
 
         <h2 className="text-xl font-semibold mt-8 mb-4">2. Description of Service</h2>
-        <p>AI Business Lead Finder provides business discovery, lead management, and AI-powered sales tools for freelancers and agencies.</p>
+        <p>LeadPilot AI provides business discovery, lead management, and AI-powered sales tools for freelancers and agencies.</p>
 
         <h2 className="text-xl font-semibold mt-8 mb-4">3. User Accounts</h2>
         <p>You are responsible for maintaining the confidentiality of your account credentials and for all activities under your account.</p>
@@ -24,7 +24,7 @@ export default function TermsPage() {
         <p>Business data is sourced from public directories. We do not guarantee 100% accuracy and recommend verifying information before outreach.</p>
 
         <h2 className="text-xl font-semibold mt-8 mb-4">7. Limitation of Liability</h2>
-        <p>AI Business Lead Finder is not liable for any damages arising from your use of the service or reliance on business data.</p>
+        <p>LeadPilot AI is not liable for any damages arising from your use of the service or reliance on business data.</p>
 
         <h2 className="text-xl font-semibold mt-8 mb-4">8. Changes to Terms</h2>
         <p>We may update these terms from time to time. Continued use after changes constitutes acceptance.</p>

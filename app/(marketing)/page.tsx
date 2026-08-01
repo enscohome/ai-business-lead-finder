@@ -64,7 +64,7 @@ const testimonials = [
     name: "Amina Bello",
     role: "Digital Agency Owner",
     company: "Abuja",
-    text: "We use LeadFinder daily to fuel our sales pipeline. The opportunity scoring helps us prioritize the hottest leads first.",
+    text: "We use LeadPilot AI daily to fuel our sales pipeline. The opportunity scoring helps us prioritize the hottest leads first.",
     rating: 5,
   },
   {
@@ -105,7 +105,7 @@ export default function LandingPage() {
               <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
                 <Zap className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-bold">LeadFinder</span>
+              <span className="text-xl font-bold">LeadPilot AI</span>
             </div>
             <div className="hidden md:flex items-center gap-6">
               <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a>
@@ -350,65 +350,10 @@ export default function LandingPage() {
             <h2 className="text-3xl sm:text-4xl font-bold mb-4">Simple, Transparent Pricing</h2>
             <p className="text-muted-foreground text-lg">Start free, upgrade when you are ready</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {[
-              {
-                name: "Free",
-                price: "$0",
-                period: "forever",
-                description: "Perfect for getting started",
-                features: ["20 searches/day", "50 saved leads", "Basic business info", "Email support"],
-                cta: "Get Started",
-                highlighted: false,
-              },
-              {
-                name: "Pro",
-                price: "$29",
-                period: "/month",
-                description: "For serious freelancers & agencies",
-                features: ["Unlimited searches", "Unlimited saved leads", "AI outreach generator", "Priority support", "Advanced filters", "CSV export"],
-                cta: "Start Pro Trial",
-                highlighted: true,
-              },
-              {
-                name: "Agency",
-                price: "$99",
-                period: "/month",
-                description: "For teams and enterprises",
-                features: ["Everything in Pro", "Team accounts (up to 10)", "CRM integrations", "API access", "White-label options", "Dedicated support"],
-                cta: "Contact Sales",
-                highlighted: false,
-              },
-            ].map((plan) => (
-              <Card key={plan.name} className={`relative flex flex-col ${plan.highlighted ? "border-primary shadow-lg scale-105 z-10" : ""}`}>
-                {plan.highlighted && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge className="bg-primary text-primary-foreground">Most Popular</Badge>
-                  </div>
-                )}
-                <CardContent className="p-6 flex flex-col h-full">
-                  <div className="text-center mb-6">
-                    <h3 className="text-xl font-bold">{plan.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{plan.description}</p>
-                    <div className="mt-4">
-                      <span className="text-4xl font-bold">{plan.price}</span>
-                      <span className="text-muted-foreground">{plan.period}</span>
-                    </div>
-                  </div>
-                  <ul className="space-y-3 mb-6 flex-1">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-center gap-2 text-sm">
-                        <Check className="h-4 w-4 text-emerald-500 shrink-0" />
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
-                  <Button variant={plan.highlighted ? "default" : "outline"} className="w-full" onClick={() => router.push("/auth/signup")}>
-                    {plan.cta}
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="mx-auto max-w-2xl rounded-2xl border bg-card p-8 text-center shadow-sm">
+            <p className="text-lg font-medium">Plans from ₦0, built for Nigerian freelancers, teams, and agencies.</p>
+            <p className="mt-2 text-sm text-muted-foreground">Compare monthly search, lead, AI outreach, export, and team allowances on the dedicated pricing page.</p>
+            <Button className="mt-6" onClick={() => router.push("/auth/signup")}>Create a free account to view plans</Button>
           </div>
         </div>
       </section>
@@ -421,7 +366,7 @@ export default function LandingPage() {
               Ready to Find Your Next Client?
             </h2>
             <p className="text-muted-foreground text-lg mb-8 max-w-xl mx-auto">
-              Join 500+ freelancers and agencies who use LeadFinder to discover and close high-value clients every day.
+              Join 500+ freelancers and agencies who use LeadPilot AI to discover and close high-value clients every day.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="lg" className="h-12 px-8 text-lg" onClick={() => router.push("/auth/signup")}>
@@ -445,7 +390,7 @@ export default function LandingPage() {
                 <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
                   <Zap className="h-4 w-4 text-white" />
                 </div>
-                <span className="font-bold">LeadFinder</span>
+                <span className="font-bold">LeadPilot AI</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 AI-powered business discovery for freelancers and agencies.
@@ -477,7 +422,7 @@ export default function LandingPage() {
           </div>
           <Separator className="mb-8" />
           <p className="text-sm text-muted-foreground text-center">
-            © 2026 AI Business Lead Finder. All rights reserved.
+            © 2026 LeadPilot AI. All rights reserved.
           </p>
         </div>
       </footer>

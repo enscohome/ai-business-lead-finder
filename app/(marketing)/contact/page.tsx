@@ -38,7 +38,7 @@ export default function ContactPage() {
                 <Mail className="h-5 w-5 text-primary" />
               </div>
               <h3 className="font-semibold mb-1">Email</h3>
-              <p className="text-sm text-muted-foreground">hello@leadfinder.app</p>
+              <p className="text-sm text-muted-foreground">hello@leadpilot.ai</p>
             </CardContent>
           </Card>
           <Card>

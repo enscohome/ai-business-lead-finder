@@ -24,7 +24,7 @@ export default function PrivacyPage() {
         <p>You can access, update, or delete your account data at any time from your settings page.</p>
 
         <h2 className="text-xl font-semibold mt-8 mb-4">7. Contact</h2>
-        <p>For privacy concerns, contact us at privacy@leadfinder.app</p>
+        <p>For privacy concerns, contact us at privacy@leadpilot.ai</p>
       </div>
     </div>
   );

@@ -48,6 +48,11 @@ export function BusinessCard({ business, onSave, isSaved }: BusinessCardProps) {
               <Badge variant="outline" className="text-xs font-normal">
                 {business.businessType}
               </Badge>
+              {business.source && (
+                <Badge variant="secondary" className="text-xs font-normal">
+                  {business.source === "google_places" ? "Live Google Places" : "Demo data"}
+                </Badge>
+              )}
               {business.rating && (
                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
                   <Star className="h-3 w-3 fill-amber-400 text-amber-400" />
@@ -63,6 +68,13 @@ export function BusinessCard({ business, onSave, isSaved }: BusinessCardProps) {
           >
             {business.opportunityScore} Opportunity
           </Badge>
+        </div>
+
+        <div className="mb-4 rounded-lg bg-muted/50 p-3 text-sm">
+          <p className="font-medium">Best fit: {business.targetServiceLabel}</p>
+          <p className="mt-1 text-muted-foreground">
+            {business.opportunityReasons?.[0] || "Opportunity based on the available business listing signals."}
+          </p>
         </div>
 
         {/* Details */}
