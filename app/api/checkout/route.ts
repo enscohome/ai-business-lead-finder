@@ -48,7 +48,9 @@ export async function POST(request: NextRequest) {
     if (!access.allowed) return access.response;
     const { error: migrationError } = await supabase
       .from("user_profiles")
-      .select("subscription_status, paystack_customer_code")
+      .select(
+        "subscription_status,subscription_current_period_start,subscription_current_period_end,subscription_cancel_at_period_end,paystack_customer_code",
+      )
       .eq("id", user.id)
       .limit(1);
     if (migrationError)

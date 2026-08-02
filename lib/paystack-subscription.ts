@@ -35,7 +35,9 @@ export async function activatePaystackPlan(
       paystack_transaction_reference: transaction.reference,
       subscription_status: "active",
       previous_paid_plan: null,
+      subscription_current_period_start: period.start,
       subscription_current_period_end: period.end,
+      subscription_cancel_at_period_end: false,
     })
     .eq("id", userId);
   if (error) throw error;
@@ -77,6 +79,7 @@ export async function returnToFreePlan(
       csv_exports_used: 0,
       subscription_status: status,
       subscription_current_period_end: new Date().toISOString(),
+      subscription_cancel_at_period_end: false,
     })
     .eq("id", profile.id);
   const { error } = await query;
