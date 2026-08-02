@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { createClient } from "@/lib/supabase/client";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
+import { OwnerAccessSummary } from "@/components/account/owner-access-summary";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -21,6 +22,7 @@ const [user, setUser] = React.useState<SupabaseUser | null>(null);
 const [fullName, setFullName] = React.useState("");
 const [phone, setPhone] = React.useState("");
 const [company, setCompany] = React.useState("");
+const [accountUsage, setAccountUsage] = React.useState<any>(null);
 React.useEffect(() => {
   supabase.auth.getUser().then(({ data }) => {
   const currentUser = data.user;
@@ -29,6 +31,9 @@ setFullName(currentUser?.user_metadata?.full_name || "");
 setPhone(currentUser?.user_metadata?.phone || "");
 setCompany(currentUser?.user_metadata?.company || "");
   });
+  fetch("/api/account/usage")
+    .then((response) => (response.ok ? response.json() : null))
+    .then(setAccountUsage);
 }, []);
 const handleSaveChanges = async () => {
   const { data, error } = await supabase.auth.updateUser({
@@ -147,16 +152,30 @@ const handleSaveChanges = async () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
+              {!accountUsage ? (
+                <p className="text-sm text-muted-foreground">
+                  Loading account access...
+                </p>
+              ) : accountUsage.isOwner ? (
+                <OwnerAccessSummary />
+              ) : (
               <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
                 <div>
-                  <p className="font-semibold">Free Plan</p>
-                  <p className="text-sm text-muted-foreground">20 searches/day, 50 saved leads</p>
+                  <p className="font-semibold">{accountUsage?.plan?.name || "Free Plan"}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {accountUsage
+                      ? `${accountUsage.searchesUsed} of ${accountUsage.searchesLimit} searches used this month`
+                      : "Loading plan usage..."}
+                  </p>
                 </div>
                 <Badge variant="secondary">Active</Badge>
               </div>
+              )}
             </CardContent>
           </Card>
-          <Button onClick={() => router.push("/pricing")}>View pricing and upgrade</Button>
+          {accountUsage && !accountUsage.isOwner && (
+            <Button onClick={() => router.push("/pricing")}>View pricing and upgrade</Button>
+          )}
         </TabsContent>
 
         <TabsContent value="security" className="space-y-4">

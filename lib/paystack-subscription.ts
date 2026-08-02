@@ -4,6 +4,7 @@ import {
   subscriptionPeriod,
   type PaystackTransaction,
 } from "@/lib/paystack";
+import { getOwnerAccess } from "@/lib/owner-access";
 
 export async function activatePaystackPlan(
   admin: any,
@@ -11,6 +12,7 @@ export async function activatePaystackPlan(
   planId: Exclude<PlanId, "free">,
   transaction: PaystackTransaction,
 ) {
+  if ((await getOwnerAccess(admin, userId)).isOwner) return;
   const plan = getPlan(planId);
   const subscription = getSubscriptionDetails(transaction);
   const period = subscriptionPeriod(
@@ -65,6 +67,7 @@ export async function returnToFreePlan(
   const { data: profile, error: lookupError } = await lookup.maybeSingle();
   if (lookupError) throw lookupError;
   if (!profile) return;
+  if ((await getOwnerAccess(admin, profile.id)).isOwner) return;
   const previousPaidPlan =
     profile.plan && profile.plan !== "free" ? profile.plan : null;
   const query = admin

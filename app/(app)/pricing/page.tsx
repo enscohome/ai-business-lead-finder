@@ -1,11 +1,38 @@
 import { Crown } from "lucide-react";
 import { SubscriptionPlans } from "@/components/subscription-plans";
+import { OwnerAccessSummary } from "@/components/account/owner-access-summary";
+import { createClient } from "@/lib/supabase/server";
+import { getOwnerAccess } from "@/lib/owner-access";
 
-export default function PricingPage({
+export default async function PricingPage({
   searchParams,
 }: {
   searchParams?: { payment?: string };
 }) {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const ownerAccess = await getOwnerAccess(supabase, user?.id);
+
+  if (ownerAccess.isOwner)
+    return (
+      <div className="mx-auto max-w-2xl space-y-8">
+        <div className="space-y-3 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-amber-500/10">
+            <Crown className="h-6 w-6 text-amber-500" />
+          </div>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Lifetime Owner Access
+          </h1>
+          <p className="text-muted-foreground">
+            Your owner account already includes every LeadPilot AI feature.
+          </p>
+        </div>
+        <OwnerAccessSummary />
+      </div>
+    );
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       <div className="text-center space-y-3">

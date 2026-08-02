@@ -6,8 +6,10 @@ import {
   type PlanId,
 } from "@/lib/plans";
 import { enforceCountryFeature } from "@/lib/country-access";
+import { getOwnerAccess } from "@/lib/owner-access";
 
 export type WebsitePromptAccessReason =
+  | "OWNER_LIFETIME_ACCESS"
   | "ALLOWED"
   | "LEGACY_PAID_PLAN_ACCESS"
   | "PREMIUM_REQUIRED"
@@ -22,6 +24,11 @@ export interface WebsitePromptEntitlement {
   previousPlan: { id: PlanId; name: string } | null;
   subscriptionStatus: string;
   subscriptionCancelAtPeriodEnd: boolean;
+  isOwner: boolean;
+  accountType: string;
+  accessLabel: string;
+  usageLabel: string;
+  renewalDateLabel: string;
   reason: WebsitePromptAccessReason;
   upgradeUrl: string;
   expiresAt: string | null;
@@ -33,6 +40,7 @@ export interface WebsitePromptEntitlement {
   planBenefits: string[];
 }
 export function evaluateWebsitePromptAccess(input: {
+  isOwner?: boolean;
   plan: unknown;
   previousPaidPlan?: unknown;
   subscriptionStatus?: string | null;
@@ -42,6 +50,12 @@ export function evaluateWebsitePromptAccess(input: {
   countryAllowed?: boolean;
   now?: number;
 }): Pick<WebsitePromptEntitlement, "allowed" | "readOnly" | "reason"> {
+  if (input.isOwner)
+    return {
+      allowed: true,
+      readOnly: false,
+      reason: "OWNER_LIFETIME_ACCESS",
+    };
   if (input.isSuspended)
     return { allowed: false, readOnly: false, reason: "ACCOUNT_SUSPENDED" };
   if (!input.countryAllowed)
@@ -90,6 +104,34 @@ export async function getWebsitePromptEntitlement(
   user: User,
 ): Promise<WebsitePromptEntitlement> {
   const fallbackPlan = getPlan("free");
+  const ownerAccess = await getOwnerAccess(supabase, user.id);
+  if (ownerAccess.isOwner)
+    return {
+      allowed: true,
+      readOnly: false,
+      currentPlan: { id: "free", name: ownerAccess.accountType },
+      previousPlan: null,
+      subscriptionStatus: "owner_lifetime",
+      subscriptionCancelAtPeriodEnd: false,
+      isOwner: true,
+      accountType: ownerAccess.accountType,
+      accessLabel: ownerAccess.access,
+      usageLabel: ownerAccess.usage,
+      renewalDateLabel: ownerAccess.renewalDate,
+      reason: "OWNER_LIFETIME_ACCESS",
+      upgradeUrl: "",
+      expiresAt: null,
+      periodStartAt: null,
+      resetAt: null,
+      generationsUsed: 0,
+      generationsLimit: 0,
+      renewalPriceNgn: 0,
+      planBenefits: [
+        "Lifetime access to all LeadPilot AI features",
+        "Unlimited product allowances",
+        "No subscription renewal required",
+      ],
+    };
   const { data: profile } = await supabase
     .from("user_profiles")
     .select(
@@ -149,6 +191,13 @@ export async function getWebsitePromptEntitlement(
     subscriptionCancelAtPeriodEnd: Boolean(
       profile?.subscription_cancel_at_period_end,
     ),
+    isOwner: false,
+    accountType: plan.name,
+    accessLabel: "Plan based",
+    usageLabel: "Plan limits apply",
+    renewalDateLabel: profile?.subscription_current_period_end
+      ? new Date(profile.subscription_current_period_end).toLocaleDateString()
+      : "Not scheduled",
     upgradeUrl: "/pricing",
     expiresAt: profile?.subscription_current_period_end || null,
     periodStartAt,
@@ -203,6 +252,7 @@ export async function getWebsitePromptEntitlement(
 
 export function entitlementError(entitlement: WebsitePromptEntitlement) {
   const messages: Record<WebsitePromptAccessReason, string> = {
+    OWNER_LIFETIME_ACCESS: "Lifetime owner access",
     ALLOWED: "Allowed",
     LEGACY_PAID_PLAN_ACCESS:
       "Allowed through temporary legacy paid-plan access.",

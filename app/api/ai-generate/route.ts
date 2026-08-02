@@ -15,7 +15,8 @@ export async function POST(request: NextRequest) {
     if (!access.allowed) return access.response;
     const profile = await ensureSubscriptionProfile(supabase, user);
     const plan = getPlan(profile.plan);
-    if ((profile.ai_messages_used || 0) >= plan.aiMessagesPerMonth) return NextResponse.json({ error: `You have reached your ${plan.name} AI outreach limit for this month.`, upgradeUrl: "/pricing" }, { status: 429 });
+    const isOwner = Boolean(profile.is_owner);
+    if (!isOwner && (profile.ai_messages_used || 0) >= plan.aiMessagesPerMonth) return NextResponse.json({ error: `You have reached your ${plan.name} AI outreach limit for this month.`, upgradeUrl: "/pricing" }, { status: 429 });
     const body = await request.json();
     const { business } = body as { business: Business };
 
@@ -27,8 +28,9 @@ export async function POST(request: NextRequest) {
     }
 
     const tools = generateAllSalesTools(business);
-    await supabase.from("user_profiles").update({ ai_messages_used: (profile.ai_messages_used || 0) + 1 }).eq("id", user.id);
-    return NextResponse.json({ tools });
+    if (!isOwner)
+      await supabase.from("user_profiles").update({ ai_messages_used: (profile.ai_messages_used || 0) + 1 }).eq("id", user.id);
+    return NextResponse.json({ tools, unlimited: isOwner });
   } catch (error) {
     return NextResponse.json(
       { error: "Failed to generate sales tools" },

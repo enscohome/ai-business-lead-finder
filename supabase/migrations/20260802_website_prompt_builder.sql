@@ -85,7 +85,9 @@ CREATE OR REPLACE FUNCTION public.consume_website_prompt_allowance(p_user_id UUI
 RETURNS BOOLEAN LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE changed INTEGER;
 BEGIN
-  IF auth.uid() IS NULL OR auth.uid() <> p_user_id OR p_limit < 1 THEN RETURN false; END IF;
+  IF auth.uid() IS NULL OR auth.uid() <> p_user_id THEN RETURN false; END IF;
+  IF public.is_leadpilot_owner() THEN RETURN true; END IF;
+  IF p_limit < 1 THEN RETURN false; END IF;
   UPDATE public.user_profiles
   SET ai_messages_used = COALESCE(ai_messages_used, 0) + 1
   WHERE id = p_user_id AND COALESCE(ai_messages_used, 0) < p_limit;

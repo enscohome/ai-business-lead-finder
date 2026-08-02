@@ -21,26 +21,33 @@ CREATE OR REPLACE FUNCTION public.has_website_prompt_access(p_write BOOLEAN DEFA
 RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.user_profiles p
-    WHERE p.id=auth.uid() AND COALESCE(p.is_suspended,false)=false AND COALESCE(p.country_code,'NG')='NG'
+    WHERE p.id=auth.uid()
       AND (
-        (
-          p.plan IN ('starter','pro','agency')
+        public.is_leadpilot_owner()
+        OR (
+          COALESCE(p.is_suspended,false)=false
+          AND COALESCE(p.country_code,'NG')='NG'
           AND (
             (
-              p.subscription_status IS NULL
-              AND p.subscription_current_period_start IS NULL
-              AND p.subscription_current_period_end IS NULL
+              p.plan IN ('starter','pro','agency')
+              AND (
+                (
+                  p.subscription_status IS NULL
+                  AND p.subscription_current_period_start IS NULL
+                  AND p.subscription_current_period_end IS NULL
+                )
+                OR (
+                  lower(p.subscription_status) IN ('active','trialing','cancelled','canceled')
+                  AND p.subscription_current_period_start <= now()
+                  AND p.subscription_current_period_end > now()
+                )
+              )
             )
             OR (
-              lower(p.subscription_status) IN ('active','trialing','cancelled','canceled')
-              AND p.subscription_current_period_start <= now()
-              AND p.subscription_current_period_end > now()
+              p_write=false
+              AND (p.plan IN ('starter','pro','agency') OR p.previous_paid_plan IN ('starter','pro','agency'))
             )
           )
-        )
-        OR (
-          p_write=false
-          AND (p.plan IN ('starter','pro','agency') OR p.previous_paid_plan IN ('starter','pro','agency'))
         )
       )
   );
@@ -83,7 +90,15 @@ DECLARE
   expected_limit INTEGER;
   legacy_paid_access BOOLEAN;
 BEGIN
-  IF auth.uid() IS NULL OR auth.uid()<>p_user_id OR p_limit<1 THEN RETURN NULL; END IF;
+  IF auth.uid() IS NULL OR auth.uid()<>p_user_id THEN RETURN NULL; END IF;
+
+  IF public.is_leadpilot_owner() THEN
+    SELECT COALESCE(website_prompt_generations_used,0) INTO next_count
+    FROM public.user_profiles WHERE id=p_user_id;
+    RETURN COALESCE(next_count,0);
+  END IF;
+
+  IF p_limit<1 THEN RETURN NULL; END IF;
 
   SELECT p.plan,p.subscription_status,p.subscription_current_period_start,p.subscription_current_period_end
   INTO profile_plan,profile_status,subscription_start,subscription_end
@@ -138,7 +153,7 @@ GRANT EXECUTE ON FUNCTION public.consume_website_prompt_generation(UUID,INTEGER)
 CREATE OR REPLACE FUNCTION public.record_website_prompt_expiry_notification(p_user_id UUID,p_period_start TIMESTAMPTZ)
 RETURNS VOID LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
 BEGIN
-  IF auth.uid() IS NULL OR auth.uid()<>p_user_id THEN RETURN; END IF;
+  IF auth.uid() IS NULL OR auth.uid()<>p_user_id OR public.is_leadpilot_owner() THEN RETURN; END IF;
   INSERT INTO public.website_prompt_notification_events(user_id,period_start,threshold) VALUES(p_user_id,p_period_start,'expired') ON CONFLICT DO NOTHING;
   IF FOUND THEN INSERT INTO public.notifications(user_id,type,title,message,related_entity_type)
     VALUES(p_user_id,'website_prompt_builder_expired','Website Prompt Builder access ended','Your paid Website Prompt Builder access has expired. Renew to continue creating and editing prompts.','website_prompt_builder'); END IF;

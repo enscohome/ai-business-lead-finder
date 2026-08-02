@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { User } from "@supabase/supabase-js";
+import { getOwnerAccess } from "@/lib/owner-access";
 export type CountryFeature =
   | "business_search"
   | "saved_leads"
@@ -34,6 +35,15 @@ export async function enforceCountryFeature(
   feature: CountryFeature,
   requestedCountry?: string,
 ) {
+  const ownerAccess = await getOwnerAccess(supabase, user.id);
+  if (ownerAccess.isOwner)
+    return {
+      allowed: true,
+      countryCode: "NG",
+      migrationPending: false,
+      isOwner: true,
+    } as const;
+
   const normalized = (requestedCountry || "").trim().toLowerCase();
   if (normalized && !["ng", "nigeria"].includes(normalized))
     return denied(

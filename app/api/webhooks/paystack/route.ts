@@ -16,6 +16,7 @@ import {
   returnToFreePlan,
 } from "@/lib/paystack-subscription";
 import { isPlanId } from "@/lib/plans";
+import { getOwnerAccess } from "@/lib/owner-access";
 
 export async function POST(request: NextRequest) {
   const rawBody = await request.text();
@@ -87,6 +88,9 @@ export async function POST(request: NextRequest) {
       const { data: matchedProfile } = await lookup.maybeSingle();
       resolvedUserId = matchedProfile?.id;
     }
+
+    if (resolvedUserId && (await getOwnerAccess(admin, resolvedUserId)).isOwner)
+      return NextResponse.json({ received: true, ownerAccessPreserved: true });
 
     if (
       payload.event === "charge.success" &&
