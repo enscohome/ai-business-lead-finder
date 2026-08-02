@@ -4,6 +4,19 @@ import {
   getNotificationDestination,
   isDestinationAvailable,
 } from "@/lib/notification-destination";
+import { getOwnerAccess } from "@/lib/owner-access";
+
+const ownerHiddenNotificationTypes = new Set([
+  "subscription",
+  "subscription_created",
+  "subscription_cancelled",
+  "subscription_expired",
+  "payment",
+  "payment_success",
+  "payment_failed",
+  "website_prompt_builder_usage",
+  "website_prompt_builder_expired",
+]);
 export async function GET() {
   const s = createClient(),
     {
@@ -24,7 +37,19 @@ export async function GET() {
       { error: "Notifications are not configured yet." },
       { status: 503 },
     );
-  const notifications = (data || []).map((n: any) => {
+  const ownerAccess = await getOwnerAccess(s, user.id);
+  const visibleData = ownerAccess.isOwner
+    ? (data || []).filter(
+        (notification: any) =>
+          !ownerHiddenNotificationTypes.has(
+            String(notification.type || "").toLowerCase(),
+          ) &&
+          !["subscription", "payment"].includes(
+            String(notification.related_entity_type || "").toLowerCase(),
+          ),
+      )
+    : data || [];
+  const notifications = visibleData.map((n: any) => {
     const destination = getNotificationDestination(n);
     return {
       ...n,

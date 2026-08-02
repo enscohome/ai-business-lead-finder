@@ -53,12 +53,18 @@ export default function TeamPage() {
   const [inviteRole, setInviteRole] = React.useState("member");
   const [isInviting, setIsInviting] = React.useState(false);
   const [dialogOpen, setDialogOpen] = React.useState(false);
-  const [teamLimit, setTeamLimit] = React.useState(1);
-  React.useEffect(() => { fetch("/api/account/usage").then(response => response.ok ? response.json() : null).then(usage => usage && setTeamLimit(usage.plan.teamMembers)); }, []);
+  const [teamLimit, setTeamLimit] = React.useState<number | null>(1);
+  const [usageLoaded, setUsageLoaded] = React.useState(false);
+  React.useEffect(() => { fetch("/api/account/usage").then(response => response.ok ? response.json() : null).then(usage => usage && setTeamLimit(usage.teamMembersLimit)).finally(() => setUsageLoaded(true)); }, []);
 
   const handleInvite = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inviteEmail.trim() || teamLimit < 2 || members.length + 1 >= teamLimit) return;
+    if (
+      !inviteEmail.trim() ||
+      !usageLoaded ||
+      (teamLimit !== null &&
+        (teamLimit < 2 || members.length + 1 >= teamLimit))
+    ) return;
 
     setIsInviting(true);
     setTimeout(() => {
@@ -117,7 +123,7 @@ export default function TeamPage() {
         </div>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button disabled={teamLimit < 2 || members.length + 1 >= teamLimit}>
+            <Button disabled={!usageLoaded || (teamLimit !== null && (teamLimit < 2 || members.length + 1 >= teamLimit))}>
               <Plus className="h-4 w-4 mr-2" />
               Invite Member
             </Button>
@@ -193,7 +199,13 @@ export default function TeamPage() {
       <Card>
         <CardHeader>
           <CardTitle>Team Members</CardTitle>
-          <CardDescription>{members.length + 1} of {teamLimit} seats used (including you)</CardDescription>
+          <CardDescription>
+            {!usageLoaded
+              ? "Loading account access..."
+              : teamLimit === null
+              ? `${members.length + 1} seats used · Unlimited owner access`
+              : `${members.length + 1} of ${teamLimit} seats used (including you)`}
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -258,8 +270,16 @@ export default function TeamPage() {
           </div>
           <Separator className="my-4" />
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>{teamLimit < 2 ? "Team access is available on Agency." : "Agency includes up to 3 members."}</span>
-            {teamLimit < 2 && <Button asChild variant="link" size="sm" className="h-auto p-0"><Link href="/pricing">View Agency</Link></Button>}
+            <span>
+              {!usageLoaded
+                ? "Loading account access..."
+                : teamLimit === null
+                ? "LeadPilot Owner includes unlimited team access."
+                : teamLimit < 2
+                  ? "Team access is available on Agency."
+                  : "Agency includes up to 3 members."}
+            </span>
+            {usageLoaded && teamLimit !== null && teamLimit < 2 && <Button asChild variant="link" size="sm" className="h-auto p-0"><Link href="/pricing">View Agency</Link></Button>}
           </div>
         </CardContent>
       </Card>

@@ -7,6 +7,7 @@ import {
   paystackRequest,
 } from "@/lib/paystack";
 import { enforceCountryFeature } from "@/lib/country-access";
+import { getOwnerAccess } from "@/lib/owner-access";
 
 const SETUP_MESSAGE = "Payment setup is not complete yet.";
 const jsonError = (message: string, status: number, code: string) =>
@@ -30,8 +31,6 @@ export async function POST(request: NextRequest) {
         : undefined;
     if (!isPlanId(planId) || planId === "free")
       return jsonError("Choose a paid plan to continue.", 400, "INVALID_PLAN");
-    if (!isPaystackTestConfigurationReady(planId))
-      return jsonError(SETUP_MESSAGE, 503, "PAYMENT_SETUP_INCOMPLETE");
 
     const supabase = createClient();
     const {
@@ -44,6 +43,15 @@ export async function POST(request: NextRequest) {
         401,
         "AUTH_REQUIRED",
       );
+    const ownerAccess = await getOwnerAccess(supabase, user.id);
+    if (ownerAccess.isOwner)
+      return jsonError(
+        "LeadPilot Owner access is lifetime and does not require a subscription.",
+        409,
+        "OWNER_SUBSCRIPTION_NOT_REQUIRED",
+      );
+    if (!isPaystackTestConfigurationReady(planId))
+      return jsonError(SETUP_MESSAGE, 503, "PAYMENT_SETUP_INCOMPLETE");
     const access = await enforceCountryFeature(supabase, user, "subscriptions");
     if (!access.allowed) return access.response;
     const { error: migrationError } = await supabase

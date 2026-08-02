@@ -24,6 +24,8 @@ export function Header() {
   const supabase = createClient();
   const [user, setUser] = React.useState<SupabaseUser | null>(null);
   const [planName, setPlanName] = React.useState("Free Plan");
+  const [isOwner, setIsOwner] = React.useState(false);
+  const [accountLoaded, setAccountLoaded] = React.useState(false);
   const [notificationsOpen, setNotificationsOpen] = React.useState(false);
   const {
     items: notifications,
@@ -39,7 +41,12 @@ export function Header() {
       if (data.user)
         fetch("/api/account/usage")
           .then((response) => (response.ok ? response.json() : null))
-          .then((usage) => usage && setPlanName(usage.plan.name));
+          .then((usage) => {
+            if (!usage) return;
+            setPlanName(usage.accountType || usage.plan.name);
+            setIsOwner(Boolean(usage.isOwner));
+          })
+          .finally(() => setAccountLoaded(true));
     });
   }, []);
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -74,21 +81,25 @@ export function Header() {
 
         {/* Right section */}
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            onClick={() => router.push("/pricing")}
-            className="hidden sm:inline-flex"
-          >
-            <Crown className="h-4 w-4 mr-2" />
-            Upgrade Plan
-          </Button>
-          <Badge
-            variant="secondary"
-            className="hidden sm:flex items-center gap-1"
-          >
-            <Crown className="h-3 w-3 text-amber-500" />
-            {planName}
-          </Badge>
+          {accountLoaded && !isOwner && (
+            <Button
+              size="sm"
+              onClick={() => router.push("/pricing")}
+              className="hidden sm:inline-flex"
+            >
+              <Crown className="h-4 w-4 mr-2" />
+              Upgrade Plan
+            </Button>
+          )}
+          {accountLoaded && (
+            <Badge
+              variant="secondary"
+              className="hidden sm:flex items-center gap-1"
+            >
+              <Crown className="h-3 w-3 text-amber-500" />
+              {planName}
+            </Badge>
+          )}
 
           <DropdownMenu
             open={notificationsOpen}
@@ -194,10 +205,12 @@ export function Header() {
                 <User className="mr-2 h-4 w-4" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => router.push("/pricing")}>
-                <Crown className="mr-2 h-4 w-4 text-amber-500" />
-                Upgrade Plan
-              </DropdownMenuItem>
+              {accountLoaded && !isOwner && (
+                <DropdownMenuItem onClick={() => router.push("/pricing")}>
+                  <Crown className="mr-2 h-4 w-4 text-amber-500" />
+                  Upgrade Plan
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-red-600" onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />

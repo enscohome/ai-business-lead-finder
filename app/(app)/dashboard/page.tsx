@@ -11,6 +11,7 @@ import { RecentActivity } from "@/components/dashboard/recent-activity";
 import { SearchBar } from "@/components/search/search-bar";
 import { SavedLead } from "@/types";
 import { getPlan } from "@/lib/plans";
+import { OwnerAccessSummary } from "@/components/account/owner-access-summary";
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -18,8 +19,10 @@ export default function DashboardPage() {
   const [activities, setActivities] = React.useState<any[]>([]);
   const [totalSearches, setTotalSearches] = React.useState(0);
   const [plan, setPlan] = React.useState("free");
-  const [searchLimit, setSearchLimit] = React.useState(20);
+  const [searchLimit, setSearchLimit] = React.useState<number | null>(20);
   const [leadsLimit, setLeadsLimit] = React.useState<number | null>(5);
+  const [isOwner, setIsOwner] = React.useState(false);
+  const [usageLoaded, setUsageLoaded] = React.useState(false);
   const [profileCompletion, setProfileCompletion] = React.useState(0);
   React.useEffect(() => {
     const leads = JSON.parse(localStorage.getItem("savedLeads") || "[]");
@@ -28,8 +31,8 @@ export default function DashboardPage() {
     const acts = JSON.parse(localStorage.getItem("activities") || "[]");
     setActivities(acts.slice(0, 5));
   fetch("/api/account/usage").then(response => response.ok ? response.json() : null).then((usage) => {
-    if (usage) { setTotalSearches(usage.searchesUsed); setPlan(usage.plan.id); setSearchLimit(usage.searchesLimit); setLeadsLimit(usage.savedLeadsLimit); }
-  });
+    if (usage) { setTotalSearches(usage.searchesUsed); setPlan(usage.plan.id); setSearchLimit(usage.searchesLimit); setLeadsLimit(usage.savedLeadsLimit); setIsOwner(Boolean(usage.isOwner)); }
+  }).finally(() => setUsageLoaded(true));
   fetch("/api/freelancer/profile").then(response => response.ok ? response.json() : null).then(data => setProfileCompletion(data?.profile?.profileCompletionPercentage || 0));
   }, []);
 
@@ -108,10 +111,23 @@ export default function DashboardPage() {
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
               <CardTitle className="text-lg">Current Plan & Usage</CardTitle>
-              <Badge variant="secondary">{getPlan(plan).name}</Badge>
+              <Badge variant="secondary">
+                {!usageLoaded
+                  ? "Loading..."
+                  : isOwner
+                    ? "LeadPilot Owner"
+                    : getPlan(plan).name}
+              </Badge>
             </div>
           </CardHeader>
           <CardContent>
+            {!usageLoaded ? (
+              <p className="text-sm text-muted-foreground">
+                Loading account access...
+              </p>
+            ) : isOwner ? (
+              <OwnerAccessSummary compact />
+            ) : (
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between text-sm mb-1">
@@ -121,7 +137,7 @@ export default function DashboardPage() {
                 <div className="h-2 rounded-full bg-muted overflow-hidden">
                   <div 
                     className="h-full bg-primary rounded-full transition-all"
-                    style={{ width: `${Math.min((stats.totalSearches / Math.max(searchLimit, 1)) * 100, 100)}%` }}
+                    style={{ width: `${Math.min((stats.totalSearches / Math.max(searchLimit || 1, 1)) * 100, 100)}%` }}
                   />
                 </div>
               </div>
@@ -142,6 +158,7 @@ export default function DashboardPage() {
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </div>
+            )}
           </CardContent>
         </Card>
       </div>

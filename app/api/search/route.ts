@@ -124,7 +124,8 @@ try {
   );
 }
 const plan = getPlan(profile.plan);
-if (profile.searches_today >= plan.searchesPerMonth) {
+const isOwner = Boolean(profile.is_owner);
+if (!isOwner && profile.searches_today >= plan.searchesPerMonth) {
   return NextResponse.json(
     {
       error: `You have reached your ${plan.name} limit of ${plan.searchesPerMonth} searches this month.`,
@@ -243,7 +244,7 @@ if (profile.searches_today >= plan.searchesPerMonth) {
 
    let updatedSearchCount = profile.searches_today;
 
-if (businesses.length > 0) {
+if (businesses.length > 0 && !isOwner) {
   const { data: newCount, error: countError } = await supabase.rpc(
     "increment_search_count",
     { user_id: user.id }
@@ -260,7 +261,8 @@ return NextResponse.json({
   businesses,
   count: businesses.length,
   searchesToday: updatedSearchCount,
-  searchesLimit: plan.searchesPerMonth,
+  searchesLimit: isOwner ? null : plan.searchesPerMonth,
+  unlimited: isOwner,
   source: "google_places",
   provenance: {
     provider: "google_places",

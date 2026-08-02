@@ -5,8 +5,10 @@ import {
   isWebsitePromptPaidPlan,
   type PlanId,
 } from "@/lib/plans";
+import { getOwnerAccess } from "@/lib/owner-access";
 
 export async function ensureSubscriptionProfile(supabase: any, user: User) {
+  const ownerAccess = await getOwnerAccess(supabase, user.id);
   let { data: profile, error } = await supabase
     .from("user_profiles")
     .select("*")
@@ -32,6 +34,8 @@ export async function ensureSubscriptionProfile(supabase: any, user: User) {
     if (result.error) throw result.error;
     profile = result.data;
   }
+
+  if (ownerAccess.isOwner) return { ...profile, is_owner: true };
 
   const now = new Date();
   const hasSubscriptionMetadata =
@@ -118,5 +122,5 @@ export async function ensureSubscriptionProfile(supabase: any, user: User) {
     if (result.error) throw result.error;
     profile = result.data;
   }
-  return profile;
+  return { ...profile, is_owner: false };
 }

@@ -267,10 +267,12 @@ export function WebsitePromptAccessGate({
     entitlement,
     readOnly: !entitlement.allowed,
     showAccessModal: (_reason, next) => {
+      if (entitlement.isOwner) return;
       if (next) setRuntimeEntitlement(next);
       setModal("access");
     },
     showLimitModal: (next) => {
+      if (entitlement.isOwner) return;
       if (next) setRuntimeEntitlement(next);
       setModal("limit");
     },
@@ -278,12 +280,14 @@ export function WebsitePromptAccessGate({
   return (
     <AccessContext.Provider value={value}>
       {children}
-      <AccessModal
-        entitlement={runtimeEntitlement}
-        kind={modal || "access"}
-        open={modal !== null}
-        onOpenChange={(open) => !open && setModal(null)}
-      />
+      {!entitlement.isOwner && (
+        <AccessModal
+          entitlement={runtimeEntitlement}
+          kind={modal || "access"}
+          open={modal !== null}
+          onOpenChange={(open) => !open && setModal(null)}
+        />
+      )}
     </AccessContext.Provider>
   );
 }

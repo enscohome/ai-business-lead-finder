@@ -22,8 +22,10 @@ function SearchPageContent() {
   const [isLoading, setIsLoading] = React.useState(false);
   const [hasSearched, setHasSearched] = React.useState(false);
   const [searchCount, setSearchCount] = React.useState(0);
-  const [searchLimit, setSearchLimit] = React.useState(5);
+  const [searchLimit, setSearchLimit] = React.useState<number | null>(5);
   const [savedLeadLimit, setSavedLeadLimit] = React.useState<number | null>(5);
+  const [isOwner, setIsOwner] = React.useState(false);
+  const [usageLoaded, setUsageLoaded] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
   const query = searchParams.get("q") || "";
@@ -53,8 +55,8 @@ function SearchPageContent() {
     const count = parseInt(localStorage.getItem("totalSearches") || "0");
     setSearchCount(count);
     fetch("/api/account/usage").then(response => response.ok ? response.json() : null).then(usage => {
-      if (usage) { setSearchCount(usage.searchesUsed); setSearchLimit(usage.searchesLimit); setSavedLeadLimit(usage.savedLeadsLimit); }
-    });
+      if (usage) { setSearchCount(usage.searchesUsed); setSearchLimit(usage.searchesLimit); setSavedLeadLimit(usage.savedLeadsLimit); setIsOwner(Boolean(usage.isOwner)); }
+    }).finally(() => setUsageLoaded(true));
   }, []);
 
   React.useEffect(() => {
@@ -86,9 +88,10 @@ if (typeof data.searchesToday === "number") {
   setSearchCount(data.searchesToday);
 }
 
-if (typeof data.searchesLimit === "number") {
+if (typeof data.searchesLimit === "number" || data.searchesLimit === null) {
   setSearchLimit(data.searchesLimit);
 }
+if (data.unlimited === true) setIsOwner(true);
       if (!response.ok && (response.status === 401 || response.status === 429)) {
         setBusinesses([]);
         setError(data.error || "Search is unavailable.");
@@ -195,6 +198,10 @@ if (typeof data.searchesLimit === "number") {
       localStorage.setItem("savedLeads", JSON.stringify(updated));
       logActivity("save", `Removed ${business.name} from saved leads`);
     } else {
+      if (!usageLoaded) {
+        setError("Your account access is still loading. Please try again.");
+        return;
+      }
       if (savedLeadLimit !== null && savedLeads.length >= savedLeadLimit) {
         setError(`You have reached your limit of ${savedLeadLimit} saved leads. Upgrade your plan to save more.`);
         return;
@@ -207,7 +214,7 @@ if (typeof data.searchesLimit === "number") {
     }
   };
 
-const isLimitReached = searchCount >= searchLimit;
+const isLimitReached = usageLoaded && searchLimit !== null && searchCount >= searchLimit;
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -220,7 +227,11 @@ const isLimitReached = searchCount >= searchLimit;
           Find local businesses and discover sales opportunities
         </p>
         <p className="text-sm text-muted-foreground">
-  {searchCount} of {searchLimit} searches used this month
+  {!usageLoaded
+    ? "Loading account usage..."
+    : isOwner
+      ? "Usage: Unlimited"
+      : `${searchCount} of ${searchLimit} searches used this month`}
 </p>
       </div>
 

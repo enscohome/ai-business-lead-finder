@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const used = entitlement.generationsUsed;
-    if (used >= entitlement.generationsLimit) {
+    if (!entitlement.isOwner && used >= entitlement.generationsLimit) {
       return NextResponse.json(
         {
           error:
@@ -86,24 +86,28 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await generateWebsitePrompts(data);
-    const { data: consumed, error: usageError } = await supabase.rpc(
-      "consume_website_prompt_generation",
-      {
-        p_user_id: user.id,
-        p_limit: entitlement.generationsLimit,
-      },
-    );
-    if (usageError || !consumed) {
-      return NextResponse.json(
+    let consumed = entitlement.generationsUsed;
+    if (!entitlement.isOwner) {
+      const { data, error: usageError } = await supabase.rpc(
+        "consume_website_prompt_generation",
         {
-          error:
-            "Your monthly prompt allowance was reached or could not be recorded.",
-          code: usageError ? "USAGE_UNAVAILABLE" : "MONTHLY_LIMIT_REACHED",
-          entitlement,
-          upgradeUrl: "/pricing",
+          p_user_id: user.id,
+          p_limit: entitlement.generationsLimit,
         },
-        { status: usageError ? 503 : 429 },
       );
+      consumed = data;
+      if (usageError || !consumed) {
+        return NextResponse.json(
+          {
+            error:
+              "Your monthly prompt allowance was reached or could not be recorded.",
+            code: usageError ? "USAGE_UNAVAILABLE" : "MONTHLY_LIMIT_REACHED",
+            entitlement,
+            upgradeUrl: "/pricing",
+          },
+          { status: usageError ? 503 : 429 },
+        );
+      }
     }
     await supabase
       .from("website_prompt_generation_events")
@@ -113,8 +117,9 @@ export async function POST(request: NextRequest) {
       source: result.source,
       usage: {
         used: consumed,
-        limit: entitlement.generationsLimit,
+        limit: entitlement.isOwner ? null : entitlement.generationsLimit,
         resetAt: entitlement.resetAt,
+        unlimited: entitlement.isOwner,
       },
     });
   } catch {
