@@ -7,6 +7,7 @@ import {
   getTransactionPlanCode,
   isSuccessfulPlanTransaction,
   parseMetadata,
+  subscriptionPeriod,
   verifyPaystackSignature,
   type PaystackEvent,
 } from "@/lib/paystack";
@@ -95,10 +96,17 @@ export async function POST(request: NextRequest) {
     ) {
       await activatePaystackPlan(admin, resolvedUserId, planId, data);
     } else if (payload.event === "subscription.create") {
+      const period = subscriptionPeriod(data.paid_at, data.next_payment_date);
       let query = admin.from("user_profiles").update({
         paystack_customer_code: data.customer?.customer_code || null,
         paystack_subscription_code: data.subscription_code || null,
         paystack_email_token: data.email_token || null,
+        subscription_status: "active",
+        subscription_current_period_start: period.start,
+        subscription_current_period_end: period.end,
+        subscription_cancel_at_period_end: false,
+        usage_period_start: period.start,
+        usage_period_end: period.end,
       });
       if (metadata.user_id) query = query.eq("id", metadata.user_id);
       else if (data.customer?.email)
@@ -107,9 +115,10 @@ export async function POST(request: NextRequest) {
       const { error } = await query;
       if (error) throw error;
     } else if (payload.event === "subscription.disable") {
-      let query = admin
-        .from("user_profiles")
-        .update({ subscription_status: "cancelled" });
+      let query = admin.from("user_profiles").update({
+        subscription_status: "cancelled",
+        subscription_cancel_at_period_end: true,
+      });
       if (selector.userId) query = query.eq("id", selector.userId);
       else if (selector.subscriptionCode)
         query = query.eq(

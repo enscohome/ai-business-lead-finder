@@ -1,19 +1,47 @@
 -- Website Prompt Builder entitlement for existing eligible LeadPilot paid plans.
 -- Review before applying. No plan names or prices are created or changed here.
 ALTER TABLE public.user_profiles
+  ADD COLUMN IF NOT EXISTS subscription_status TEXT,
+  ADD COLUMN IF NOT EXISTS subscription_current_period_start TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS subscription_current_period_end TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS subscription_cancel_at_period_end BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS usage_period_start TIMESTAMPTZ,
+  ADD COLUMN IF NOT EXISTS usage_period_end TIMESTAMPTZ,
   ADD COLUMN IF NOT EXISTS website_prompt_generations_used INTEGER NOT NULL DEFAULT 0 CHECK (website_prompt_generations_used >= 0),
   ADD COLUMN IF NOT EXISTS previous_paid_plan TEXT CHECK (previous_paid_plan IS NULL OR previous_paid_plan IN ('starter','pro','agency'));
 
+-- Legacy paid accounts intentionally keep all subscription metadata NULL. Their
+-- existing shared calendar-month period remains the temporary usage boundary.
+UPDATE public.user_profiles
+SET usage_period_start = COALESCE(usage_period_start, date_trunc('month', now())),
+    usage_period_end = COALESCE(usage_period_end, date_trunc('month', now()) + interval '1 month')
+WHERE usage_period_start IS NULL OR usage_period_end IS NULL;
+
 CREATE OR REPLACE FUNCTION public.has_website_prompt_access(p_write BOOLEAN DEFAULT false)
 RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$
-  SELECT public.is_leadpilot_admin() OR EXISTS (
+  SELECT EXISTS (
     SELECT 1 FROM public.user_profiles p
     WHERE p.id=auth.uid() AND COALESCE(p.is_suspended,false)=false AND COALESCE(p.country_code,'NG')='NG'
       AND (
-        (p.plan IN ('starter','pro','agency')
-          AND (p.subscription_status IN ('active','trialing') OR (p.subscription_status='cancelled' AND p.subscription_current_period_end>now()))
-          AND p.subscription_current_period_end>now())
-        OR (p_write=false AND (p.plan IN ('starter','pro','agency') OR p.previous_paid_plan IN ('starter','pro','agency')))
+        (
+          p.plan IN ('starter','pro','agency')
+          AND (
+            (
+              p.subscription_status IS NULL
+              AND p.subscription_current_period_start IS NULL
+              AND p.subscription_current_period_end IS NULL
+            )
+            OR (
+              lower(p.subscription_status) IN ('active','trialing','cancelled','canceled')
+              AND p.subscription_current_period_start <= now()
+              AND p.subscription_current_period_end > now()
+            )
+          )
+        )
+        OR (
+          p_write=false
+          AND (p.plan IN ('starter','pro','agency') OR p.previous_paid_plan IN ('starter','pro','agency'))
+        )
       )
   );
 $$;
@@ -38,18 +66,61 @@ CREATE TABLE IF NOT EXISTS public.website_prompt_notification_events (
   UNIQUE(user_id,period_start,threshold)
 );
 ALTER TABLE public.website_prompt_notification_events ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "Users read own prompt notification events" ON public.website_prompt_notification_events;
 CREATE POLICY "Users read own prompt notification events" ON public.website_prompt_notification_events FOR SELECT TO authenticated USING(user_id=auth.uid());
 
 CREATE OR REPLACE FUNCTION public.consume_website_prompt_generation(p_user_id UUID,p_limit INTEGER)
 RETURNS INTEGER LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
-DECLARE next_count INTEGER; period_start TIMESTAMPTZ; threshold_value TEXT;
+DECLARE
+  next_count INTEGER;
+  period_start TIMESTAMPTZ;
+  period_end TIMESTAMPTZ;
+  threshold_value TEXT;
+  profile_plan TEXT;
+  profile_status TEXT;
+  subscription_start TIMESTAMPTZ;
+  subscription_end TIMESTAMPTZ;
+  expected_limit INTEGER;
+  legacy_paid_access BOOLEAN;
 BEGIN
   IF auth.uid() IS NULL OR auth.uid()<>p_user_id OR p_limit<1 THEN RETURN NULL; END IF;
-  UPDATE public.user_profiles SET website_prompt_generations_used=0,usage_period_start=date_trunc('month',now()),usage_period_end=date_trunc('month',now())+interval '1 month'
-  WHERE id=p_user_id AND (usage_period_end IS NULL OR usage_period_end<=now());
+
+  SELECT p.plan,p.subscription_status,p.subscription_current_period_start,p.subscription_current_period_end
+  INTO profile_plan,profile_status,subscription_start,subscription_end
+  FROM public.user_profiles p
+  WHERE p.id=p_user_id
+  FOR UPDATE;
+
+  IF profile_plan IS NULL OR NOT public.has_website_prompt_access(true) THEN RETURN NULL; END IF;
+
+  expected_limit := CASE profile_plan WHEN 'starter' THEN 50 WHEN 'pro' THEN 250 WHEN 'agency' THEN 750 ELSE 0 END;
+  IF p_limit<>expected_limit THEN RETURN NULL; END IF;
+
+  legacy_paid_access := profile_plan IN ('starter','pro','agency')
+    AND profile_status IS NULL
+    AND subscription_start IS NULL
+    AND subscription_end IS NULL;
+
+  IF legacy_paid_access THEN
+    period_start := date_trunc('month',now());
+    period_end := period_start+interval '1 month';
+  ELSE
+    period_start := subscription_start;
+    period_end := subscription_end;
+  END IF;
+
+  IF period_start IS NULL OR period_end IS NULL OR period_start>now() OR period_end<=now() THEN RETURN NULL; END IF;
+
+  UPDATE public.user_profiles
+  SET website_prompt_generations_used=0,
+      usage_period_start=period_start,
+      usage_period_end=period_end
+  WHERE id=p_user_id
+    AND (usage_period_start IS DISTINCT FROM period_start OR usage_period_end IS DISTINCT FROM period_end);
+
   UPDATE public.user_profiles SET website_prompt_generations_used=website_prompt_generations_used+1
   WHERE id=p_user_id AND website_prompt_generations_used<p_limit
-  RETURNING website_prompt_generations_used,COALESCE(usage_period_start,date_trunc('month',now())) INTO next_count,period_start;
+  RETURNING website_prompt_generations_used INTO next_count;
   IF next_count IS NULL THEN RETURN NULL; END IF;
   IF next_count>=p_limit THEN threshold_value:='100';
   ELSIF next_count>=CEIL(p_limit*0.8) THEN threshold_value:='80'; END IF;
