@@ -136,6 +136,27 @@ export function sanitizePromptOutputs(input: unknown): PromptOutputs {
   };
 }
 
+const SECRET_PATTERNS = [
+  /\bsk_(?:live|test)_[A-Za-z0-9_-]{8,}\b/i,
+  /\bsk-(?:proj-)?[A-Za-z0-9_-]{16,}\b/i,
+  /\b(?:password|passwd|api[_ -]?key|secret|private[_ -]?token|access[_ -]?token|service[_ -]?role)[\s]*[:=][\s]*\S{8,}/i,
+  /\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\b/,
+];
+export function findSecretFields(input: unknown, prefix = ""): string[] {
+  if (typeof input === "string")
+    return SECRET_PATTERNS.some((pattern) => pattern.test(input))
+      ? [prefix || "input"]
+      : [];
+  if (Array.isArray(input))
+    return input.flatMap((item, index) =>
+      findSecretFields(item, `${prefix}[${index}]`),
+    );
+  if (!input || typeof input !== "object") return [];
+  return Object.entries(input as Record<string, unknown>).flatMap(
+    ([key, item]) => findSecretFields(item, prefix ? `${prefix}.${key}` : key),
+  );
+}
+
 const show = (items: string[]) =>
   items.length ? items.join(", ") : "Not specified";
 const value = (text: string) => text || "Not specified";

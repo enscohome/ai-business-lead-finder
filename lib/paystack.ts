@@ -15,7 +15,14 @@ export interface PaystackTransaction {
   customer?: { customer_code?: string; email?: string };
   plan_code?: string;
   plan?: { plan_code?: string } | string | null;
-  subscription?: { subscription_code?: string; email_token?: string; next_payment_date?: string } | string | null;
+  subscription?:
+    | {
+        subscription_code?: string;
+        email_token?: string;
+        next_payment_date?: string;
+      }
+    | string
+    | null;
 }
 
 export interface PaystackEvent {
@@ -38,13 +45,24 @@ export function getPaystackPlanCode(plan: PaidPlanId) {
   return codes[plan];
 }
 
-export function getPlanFromPaystackCode(code?: string | null): PaidPlanId | null {
+export function getPlanFromPaystackCode(
+  code?: string | null,
+): PaidPlanId | null {
   if (!code) return null;
-  return (["starter", "pro", "agency"] as PaidPlanId[]).find(plan => getPaystackPlanCode(plan) === code) || null;
+  return (
+    (["starter", "pro", "agency"] as PaidPlanId[]).find(
+      (plan) => getPaystackPlanCode(plan) === code,
+    ) || null
+  );
 }
 
 export function getTransactionPlanCode(transaction: PaystackTransaction) {
-  return transaction.plan_code || (typeof transaction.plan === "string" ? transaction.plan : transaction.plan?.plan_code);
+  return (
+    transaction.plan_code ||
+    (typeof transaction.plan === "string"
+      ? transaction.plan
+      : transaction.plan?.plan_code)
+  );
 }
 
 export function getSubscriptionDetails(transaction: PaystackTransaction) {
@@ -55,7 +73,11 @@ export function getSubscriptionDetails(transaction: PaystackTransaction) {
 
 export function parseMetadata(metadata: PaystackTransaction["metadata"]) {
   if (typeof metadata === "string") {
-    try { return JSON.parse(metadata) as { user_id?: string; plan?: string }; } catch { return {}; }
+    try {
+      return JSON.parse(metadata) as { user_id?: string; plan?: string };
+    } catch {
+      return {};
+    }
   }
   return metadata || {};
 }
@@ -65,40 +87,73 @@ export function isPaystackTestConfigurationReady(plan: PaidPlanId) {
   return Boolean(secret?.startsWith("sk_test_") && getPaystackPlanCode(plan));
 }
 
-export async function paystackRequest<T>(path: string, init?: RequestInit): Promise<T> {
+export async function paystackRequest<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<T> {
   const secret = process.env.PAYSTACK_SECRET_KEY;
-  if (!secret?.startsWith("sk_test_")) throw new Error("PAYSTACK_TEST_CONFIGURATION_REQUIRED");
+  if (!secret?.startsWith("sk_test_"))
+    throw new Error("PAYSTACK_TEST_CONFIGURATION_REQUIRED");
   const response = await fetch(`${PAYSTACK_API}${path}`, {
     ...init,
-    headers: { Authorization: `Bearer ${secret}`, "Content-Type": "application/json", ...init?.headers },
+    headers: {
+      Authorization: `Bearer ${secret}`,
+      "Content-Type": "application/json",
+      ...init?.headers,
+    },
     cache: "no-store",
   });
   const text = await response.text();
   let payload: { status?: boolean; message?: string; data?: T } = {};
-  if (text) { try { payload = JSON.parse(text); } catch { throw new Error("PAYSTACK_INVALID_RESPONSE"); } }
-  if (!response.ok || !payload.status || !payload.data) throw new Error(payload.message || "PAYSTACK_REQUEST_FAILED");
+  if (text) {
+    try {
+      payload = JSON.parse(text);
+    } catch {
+      throw new Error("PAYSTACK_INVALID_RESPONSE");
+    }
+  }
+  if (!response.ok || !payload.status || !payload.data)
+    throw new Error(payload.message || "PAYSTACK_REQUEST_FAILED");
   return payload.data;
 }
 
-export function verifyPaystackSignature(rawBody: string, signature: string | null) {
+export function verifyPaystackSignature(
+  rawBody: string,
+  signature: string | null,
+) {
   const secret = process.env.PAYSTACK_SECRET_KEY;
   if (!secret?.startsWith("sk_test_") || !signature) return false;
   const expected = createHmac("sha512", secret).update(rawBody).digest("hex");
   const received = Buffer.from(signature, "utf8");
   const expectedBuffer = Buffer.from(expected, "utf8");
-  return received.length === expectedBuffer.length && timingSafeEqual(received, expectedBuffer);
+  return (
+    received.length === expectedBuffer.length &&
+    timingSafeEqual(received, expectedBuffer)
+  );
 }
 
-export function isSuccessfulPlanTransaction(transaction: PaystackTransaction, planId: unknown) {
+export function isSuccessfulPlanTransaction(
+  transaction: PaystackTransaction,
+  planId: unknown,
+) {
   if (!isPlanId(planId) || planId === "free") return false;
   const plan = getPlan(planId);
-  return transaction.status === "success" && transaction.currency === "NGN" && transaction.amount === plan.priceNgn * 100 && getTransactionPlanCode(transaction) === getPaystackPlanCode(planId);
+  return (
+    transaction.status === "success" &&
+    transaction.currency === "NGN" &&
+    transaction.amount === plan.priceNgn * 100 &&
+    getTransactionPlanCode(transaction) === getPaystackPlanCode(planId)
+  );
 }
 
 export function subscriptionPeriod(paidAt?: string, nextPaymentDate?: string) {
-  const start = paidAt && !Number.isNaN(Date.parse(paidAt)) ? new Date(paidAt) : new Date();
+  const start =
+    paidAt && !Number.isNaN(Date.parse(paidAt)) ? new Date(paidAt) : new Date();
   const calculatedEnd = new Date(start);
   calculatedEnd.setUTCMonth(calculatedEnd.getUTCMonth() + 1);
-  const end = nextPaymentDate && !Number.isNaN(Date.parse(nextPaymentDate)) ? new Date(nextPaymentDate) : calculatedEnd;
+  const end =
+    nextPaymentDate && !Number.isNaN(Date.parse(nextPaymentDate))
+      ? new Date(nextPaymentDate)
+      : calculatedEnd;
   return { start: start.toISOString(), end: end.toISOString() };
 }

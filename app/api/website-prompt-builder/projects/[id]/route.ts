@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
+  findSecretFields,
   sanitizePromptOutputs,
   sanitizeWebsitePromptInput,
 } from "@/lib/website-prompt";
+import {
+  entitlementError,
+  getWebsitePromptEntitlement,
+} from "@/lib/website-prompt-entitlement";
 
 const select =
   "id,project_name,business_name,industry,target_ai,generated_prompt,general_brief,form_data,prompt_outputs,status,created_at,updated_at";
@@ -18,6 +23,11 @@ export async function GET(
   } = await supabase.auth.getUser();
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const entitlement = await getWebsitePromptEntitlement(supabase, user);
+  if (!entitlement.allowed && !entitlement.readOnly) {
+    const denied = entitlementError(entitlement);
+    return NextResponse.json(denied.body, { status: denied.status });
+  }
   const { data, error } = await supabase
     .from("website_prompt_projects")
     .select(select)
@@ -42,8 +52,26 @@ export async function PATCH(
   } = await supabase.auth.getUser();
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const entitlement = await getWebsitePromptEntitlement(supabase, user);
+  if (!entitlement.allowed) {
+    const denied = entitlementError(entitlement);
+    return NextResponse.json(denied.body, { status: denied.status });
+  }
   try {
     const body = await request.json();
+    const secretFields = [
+      ...findSecretFields(body.formData),
+      ...findSecretFields(body.outputs, "outputs"),
+    ];
+    if (secretFields.length)
+      return NextResponse.json(
+        {
+          error: "Remove secret or credential-like information before saving.",
+          code: "SECRET_DETECTED",
+          fields: secretFields,
+        },
+        { status: 400 },
+      );
     const form = sanitizeWebsitePromptInput(body.formData);
     const outputs = sanitizePromptOutputs(body.outputs);
     const target = ["codex", "claude", "kimi", "general"].includes(
@@ -104,6 +132,11 @@ export async function DELETE(
   } = await supabase.auth.getUser();
   if (!user)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const entitlement = await getWebsitePromptEntitlement(supabase, user);
+  if (!entitlement.allowed) {
+    const denied = entitlementError(entitlement);
+    return NextResponse.json(denied.body, { status: denied.status });
+  }
   const { error } = await supabase
     .from("website_prompt_projects")
     .delete()

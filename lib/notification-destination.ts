@@ -33,6 +33,11 @@ const payments = new Set([
   "payment_success",
   "payment_failed",
 ]);
+const websitePromptBuilder = new Set([
+  "website_prompt_builder_usage",
+  "website_prompt_builder",
+]);
+const websitePromptPricing = new Set(["website_prompt_builder_expired"]);
 const jobTypes = new Set([
   "job",
   "job_post",
@@ -65,6 +70,9 @@ export function getNotificationDestination(
   if (verificationApplications.has(type))
     return "/admin/freelancers?tab=verification";
   if (payments.has(type) || payments.has(entity)) return "/pricing";
+  if (websitePromptPricing.has(type)) return "/pricing";
+  if (websitePromptBuilder.has(type) || websitePromptBuilder.has(entity))
+    return "/tools/website-prompt-builder";
   if (
     jobTypes.has(type) ||
     ["job", "job_post", "job_application", "job_invitation"].includes(entity)

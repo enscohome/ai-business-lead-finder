@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { enforceCountryFeature } from "@/lib/country-access";
-import { ensureSubscriptionProfile } from "@/lib/subscription";
-import { getPlan } from "@/lib/plans";
 import {
+  findSecretFields,
   sanitizeWebsitePromptInput,
   validateWebsitePromptInput,
 } from "@/lib/website-prompt";
 import { generateWebsitePrompts } from "@/lib/website-prompt-ai";
+import {
+  entitlementError,
+  getWebsitePromptEntitlement,
+} from "@/lib/website-prompt-entitlement";
 
 export async function POST(request: NextRequest) {
   const supabase = createClient();
@@ -30,27 +32,37 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  const entitlement = await getWebsitePromptEntitlement(supabase, user);
+  if (!entitlement.allowed) {
+    const denied = entitlementError(entitlement);
+    return NextResponse.json(denied.body, { status: denied.status });
+  }
+
   const data = sanitizeWebsitePromptInput((body as any)?.formData);
+  const secretFields = findSecretFields((body as any)?.formData);
+  if (secretFields.length)
+    return NextResponse.json(
+      {
+        error:
+          "Remove secret or credential-like information before continuing.",
+        code: "SECRET_DETECTED",
+        fields: secretFields,
+      },
+      { status: 400 },
+    );
   const errors = validateWebsitePromptInput(data);
   if (errors.length)
     return NextResponse.json({ error: errors[0], errors }, { status: 400 });
 
-  const access = await enforceCountryFeature(
-    supabase,
-    user,
-    "website_prompt_builder",
-    data.countryCode,
-  );
-  if (!access.allowed) return access.response;
-
   try {
-    const profile = await ensureSubscriptionProfile(supabase, user);
-    const plan = getPlan(profile.plan);
-    const used = profile.ai_messages_used || 0;
-    if (used >= plan.aiMessagesPerMonth) {
+    const used = entitlement.generationsUsed;
+    if (used >= entitlement.generationsLimit) {
       return NextResponse.json(
         {
-          error: `You have reached your ${plan.name} AI generation limit for this month.`,
+          error:
+            "You have reached your monthly Website Prompt Builder generation limit.",
+          code: "MONTHLY_LIMIT_REACHED",
+          entitlement,
           upgradeUrl: "/pricing",
         },
         { status: 429 },
@@ -75,16 +87,19 @@ export async function POST(request: NextRequest) {
 
     const result = await generateWebsitePrompts(data);
     const { data: consumed, error: usageError } = await supabase.rpc(
-      "consume_website_prompt_allowance",
+      "consume_website_prompt_generation",
       {
         p_user_id: user.id,
-        p_limit: plan.aiMessagesPerMonth,
+        p_limit: entitlement.generationsLimit,
       },
     );
     if (usageError || !consumed) {
       return NextResponse.json(
         {
-          error: "Your AI allowance was reached or could not be recorded.",
+          error:
+            "Your monthly prompt allowance was reached or could not be recorded.",
+          code: usageError ? "USAGE_UNAVAILABLE" : "MONTHLY_LIMIT_REACHED",
+          entitlement,
           upgradeUrl: "/pricing",
         },
         { status: usageError ? 503 : 429 },
@@ -96,7 +111,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       outputs: result.outputs,
       source: result.source,
-      usage: { used: used + 1, limit: plan.aiMessagesPerMonth },
+      usage: {
+        used: consumed,
+        limit: entitlement.generationsLimit,
+        resetAt: entitlement.resetAt,
+      },
     });
   } catch {
     return NextResponse.json(

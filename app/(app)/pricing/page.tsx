@@ -1,7 +1,11 @@
 import { Crown } from "lucide-react";
 import { SubscriptionPlans } from "@/components/subscription-plans";
 
-export default function PricingPage({ searchParams }: { searchParams?: { payment?: string } }) {
+export default function PricingPage({
+  searchParams,
+}: {
+  searchParams?: { payment?: string };
+}) {
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       <div className="text-center space-y-3">
@@ -10,11 +14,21 @@ export default function PricingPage({ searchParams }: { searchParams?: { payment
         </div>
         <h1 className="text-3xl font-bold tracking-tight">Choose Your Plan</h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">
-          Monthly subscriptions in Nigerian naira for businesses launching with LeadPilot AI in Nigeria.
+          Monthly subscriptions in Nigerian naira for businesses launching with
+          LeadPilot AI in Nigeria.
         </p>
       </div>
-      {searchParams?.payment === "success" && <p className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-center text-sm text-emerald-700">Payment verified. Your plan is now active.</p>}
-      {searchParams?.payment === "failed" && <p className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4 text-center text-sm text-amber-700">Payment was not completed or could not be verified. Your account remains on the Free Plan.</p>}
+      {searchParams?.payment === "success" && (
+        <p className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-4 text-center text-sm text-emerald-700">
+          Payment verified. Your plan is now active.
+        </p>
+      )}
+      {searchParams?.payment === "failed" && (
+        <p className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4 text-center text-sm text-amber-700">
+          Payment was not completed or could not be verified. Your account
+          remains on the Free Plan.
+        </p>
+      )}
       <SubscriptionPlans />
     </div>
   );
