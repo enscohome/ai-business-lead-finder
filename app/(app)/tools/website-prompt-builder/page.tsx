@@ -3,7 +3,6 @@
 import * as React from "react";
 import Link from "next/link";
 import {
-  AlertTriangle,
   ArrowLeft,
   ArrowRight,
   Check,
@@ -34,6 +33,8 @@ import type {
   PromptTarget,
   WebsitePromptFormData,
 } from "@/types/website-prompt";
+import { findSecretFields } from "@/lib/website-prompt";
+import { useWebsitePromptAccess } from "@/components/website-prompt/access-gate";
 
 const emptyForm: WebsitePromptFormData = {
   projectName: "",
@@ -148,10 +149,12 @@ function Field({
   label,
   required,
   children,
+  error,
 }: {
   label: string;
   required?: boolean;
   children: React.ReactNode;
+  error?: string;
 }) {
   return (
     <div className="space-y-2">
@@ -160,6 +163,11 @@ function Field({
         {required && <span className="text-destructive"> *</span>}
       </Label>
       {children}
+      {error && (
+        <p className="text-xs text-destructive" role="alert">
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -173,6 +181,7 @@ function splitCustom(value: string) {
 }
 
 export default function WebsitePromptBuilderPage() {
+  const { showAccessModal, showLimitModal } = useWebsitePromptAccess();
   const [step, setStep] = React.useState(0);
   const [form, setForm] = React.useState<WebsitePromptFormData>(emptyForm);
   const [outputs, setOutputs] = React.useState<PromptOutputs>(blankOutputs);
@@ -182,6 +191,30 @@ export default function WebsitePromptBuilderPage() {
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState("");
   const [success, setSuccess] = React.useState("");
+  const [secretFields, setSecretFields] = React.useState<string[]>([]);
+  const secretError = (path: string) =>
+    secretFields.some(
+      (field) =>
+        field === path ||
+        field.startsWith(`${path}[`) ||
+        field.startsWith(`${path}.`),
+    )
+      ? "Remove the secret or credential-like value from this field."
+      : undefined;
+  const validateSecrets = () => {
+    const fields = [
+      ...findSecretFields(form),
+      ...findSecretFields(outputs, "outputs"),
+    ];
+    setSecretFields(fields);
+    if (fields.length) {
+      setError(
+        "Remove secret or credential-like information before continuing.",
+      );
+      return false;
+    }
+    return true;
+  };
 
   React.useEffect(() => {
     const id = new URLSearchParams(window.location.search).get("project");
@@ -237,6 +270,7 @@ export default function WebsitePromptBuilderPage() {
   const save = async (
     status: "draft" | "generated" = outputs.codex ? "generated" : "draft",
   ) => {
+    if (!validateSecrets()) return null;
     setBusy(true);
     setError("");
     setSuccess("");
@@ -257,6 +291,19 @@ export default function WebsitePromptBuilderPage() {
         },
       );
       const data = await response.json();
+      if (data.code === "SECRET_DETECTED") setSecretFields(data.fields || []);
+      if (
+        [
+          "PREMIUM_REQUIRED",
+          "SUBSCRIPTION_EXPIRED",
+          "PAYMENT_FAILED",
+          "ACCOUNT_SUSPENDED",
+          "COUNTRY_UNAVAILABLE",
+        ].includes(data.code)
+      ) {
+        showAccessModal(data.code, data.entitlement);
+        return null;
+      }
       if (!response.ok)
         throw new Error(data.error || "Could not save this project.");
       setProjectId(data.project.id);
@@ -275,6 +322,7 @@ export default function WebsitePromptBuilderPage() {
   };
 
   const generate = async () => {
+    if (!validateSecrets()) return;
     setBusy(true);
     setError("");
     setSuccess("");
@@ -285,6 +333,23 @@ export default function WebsitePromptBuilderPage() {
         body: JSON.stringify({ formData: form }),
       });
       const data = await response.json();
+      if (data.code === "SECRET_DETECTED") setSecretFields(data.fields || []);
+      if (data.code === "MONTHLY_LIMIT_REACHED") {
+        showLimitModal(data.entitlement);
+        return;
+      }
+      if (
+        [
+          "PREMIUM_REQUIRED",
+          "SUBSCRIPTION_EXPIRED",
+          "PAYMENT_FAILED",
+          "ACCOUNT_SUSPENDED",
+          "COUNTRY_UNAVAILABLE",
+        ].includes(data.code)
+      ) {
+        showAccessModal(data.code, data.entitlement);
+        return;
+      }
       if (!response.ok)
         throw new Error(data.error || "Could not generate the prompts.");
       setOutputs(data.outputs);
@@ -356,11 +421,6 @@ export default function WebsitePromptBuilderPage() {
           </Link>
         </Button>
       </div>
-      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-3 text-sm">
-        <AlertTriangle className="mr-2 inline h-4 w-4 text-amber-600" />
-        Never paste passwords, API keys, payment secrets, or private credentials
-        into this form.
-      </div>
       {error && (
         <div
           role="alert"
@@ -415,7 +475,11 @@ export default function WebsitePromptBuilderPage() {
         <CardContent className="space-y-5">
           {step === 0 && (
             <div className="grid gap-5 md:grid-cols-2">
-              <Field label="Project name" required>
+              <Field
+                label="Project name"
+                required
+                error={secretError("projectName")}
+              >
                 <Input
                   maxLength={120}
                   value={form.projectName}
@@ -425,7 +489,11 @@ export default function WebsitePromptBuilderPage() {
                   placeholder="My business website"
                 />
               </Field>
-              <Field label="Business name" required>
+              <Field
+                label="Business name"
+                required
+                error={secretError("businessName")}
+              >
                 <Input
                   maxLength={120}
                   value={form.businessName}
@@ -434,7 +502,11 @@ export default function WebsitePromptBuilderPage() {
                   }
                 />
               </Field>
-              <Field label="Business type or industry" required>
+              <Field
+                label="Business type or industry"
+                required
+                error={secretError("industry")}
+              >
                 <Input
                   maxLength={120}
                   value={form.industry}
@@ -445,7 +517,11 @@ export default function WebsitePromptBuilderPage() {
               <Field label="Country">
                 <Input value="Nigeria" disabled />
               </Field>
-              <Field label="Short business description" required>
+              <Field
+                label="Short business description"
+                required
+                error={secretError("businessDescription")}
+              >
                 <Textarea
                   maxLength={2500}
                   value={form.businessDescription}
@@ -454,7 +530,11 @@ export default function WebsitePromptBuilderPage() {
                   }
                 />
               </Field>
-              <Field label="Main products or services" required>
+              <Field
+                label="Main products or services"
+                required
+                error={secretError("productsServices")}
+              >
                 <Textarea
                   maxLength={2500}
                   value={form.productsServices}
@@ -463,7 +543,11 @@ export default function WebsitePromptBuilderPage() {
                   }
                 />
               </Field>
-              <Field label="Target customers" required>
+              <Field
+                label="Target customers"
+                required
+                error={secretError("targetCustomers")}
+              >
                 <Textarea
                   maxLength={2500}
                   value={form.targetCustomers}
@@ -473,14 +557,20 @@ export default function WebsitePromptBuilderPage() {
                 />
               </Field>
               <div className="space-y-5">
-                <Field label="City or service area (optional)">
+                <Field
+                  label="City or service area (optional)"
+                  error={secretError("city")}
+                >
                   <Input
                     maxLength={120}
                     value={form.city}
                     onChange={(event) => update("city", event.target.value)}
                   />
                 </Field>
-                <Field label="Existing website URL (optional)">
+                <Field
+                  label="Existing website URL (optional)"
+                  error={secretError("existingWebsiteUrl")}
+                >
                   <Input
                     type="url"
                     maxLength={500}
@@ -501,7 +591,10 @@ export default function WebsitePromptBuilderPage() {
                 selected={form.websitePurpose}
                 onChange={(items) => update("websitePurpose", items)}
               />
-              <Field label="Other purpose (optional)">
+              <Field
+                label="Other purpose (optional)"
+                error={secretError("otherPurpose")}
+              >
                 <Input
                   maxLength={600}
                   value={form.otherPurpose}
@@ -519,7 +612,10 @@ export default function WebsitePromptBuilderPage() {
                 selected={form.selectedPages}
                 onChange={(items) => update("selectedPages", items)}
               />
-              <Field label="Custom page names (comma or line separated)">
+              <Field
+                label="Custom page names (comma or line separated)"
+                error={secretError("customPages")}
+              >
                 <Textarea
                   value={form.customPages.join(", ")}
                   onChange={(event) =>
@@ -537,7 +633,10 @@ export default function WebsitePromptBuilderPage() {
                 selected={form.selectedFeatures}
                 onChange={(items) => update("selectedFeatures", items)}
               />
-              <Field label="Other custom features (comma or line separated)">
+              <Field
+                label="Other custom features (comma or line separated)"
+                error={secretError("customFeatures")}
+              >
                 <Textarea
                   value={form.customFeatures.join(", ")}
                   onChange={(event) =>
@@ -555,21 +654,30 @@ export default function WebsitePromptBuilderPage() {
                 onChange={(items) => design("style", items)}
               />
               <div className="grid gap-5 md:grid-cols-2">
-                <Field label="Preferred colours">
+                <Field
+                  label="Preferred colours"
+                  error={secretError("designPreferences.preferredColours")}
+                >
                   <Input
                     maxLength={600}
                     value={form.designPreferences.preferredColours}
                     onChange={(e) => design("preferredColours", e.target.value)}
                   />
                 </Field>
-                <Field label="Colours to avoid">
+                <Field
+                  label="Colours to avoid"
+                  error={secretError("designPreferences.coloursToAvoid")}
+                >
                   <Input
                     maxLength={600}
                     value={form.designPreferences.coloursToAvoid}
                     onChange={(e) => design("coloursToAvoid", e.target.value)}
                   />
                 </Field>
-                <Field label="Font preference (optional)">
+                <Field
+                  label="Font preference (optional)"
+                  error={secretError("designPreferences.fontPreference")}
+                >
                   <Input
                     maxLength={600}
                     value={form.designPreferences.fontPreference}
@@ -602,21 +710,30 @@ export default function WebsitePromptBuilderPage() {
                     <option value="no">No logo yet</option>
                   </select>
                 </Field>
-                <Field label="Preferred layout">
+                <Field
+                  label="Preferred layout"
+                  error={secretError("designPreferences.preferredLayout")}
+                >
                   <Input
                     maxLength={600}
                     value={form.designPreferences.preferredLayout}
                     onChange={(e) => design("preferredLayout", e.target.value)}
                   />
                 </Field>
-                <Field label="Example websites (optional)">
+                <Field
+                  label="Example websites (optional)"
+                  error={secretError("designPreferences.exampleWebsites")}
+                >
                   <Textarea
                     maxLength={1000}
                     value={form.designPreferences.exampleWebsites}
                     onChange={(e) => design("exampleWebsites", e.target.value)}
                   />
                 </Field>
-                <Field label="Desired brand feeling">
+                <Field
+                  label="Desired brand feeling"
+                  error={secretError("designPreferences.brandFeeling")}
+                >
                   <Textarea
                     maxLength={600}
                     value={form.designPreferences.brandFeeling}
@@ -648,21 +765,30 @@ export default function WebsitePromptBuilderPage() {
           )}
           {step === 6 && (
             <div className="grid gap-5 md:grid-cols-2">
-              <Field label="Phone number">
+              <Field
+                label="Phone number"
+                error={secretError("contactInformation.phone")}
+              >
                 <Input
                   maxLength={40}
                   value={form.contactInformation.phone}
                   onChange={(e) => contact("phone", e.target.value)}
                 />
               </Field>
-              <Field label="WhatsApp number">
+              <Field
+                label="WhatsApp number"
+                error={secretError("contactInformation.whatsapp")}
+              >
                 <Input
                   maxLength={40}
                   value={form.contactInformation.whatsapp}
                   onChange={(e) => contact("whatsapp", e.target.value)}
                 />
               </Field>
-              <Field label="Business email">
+              <Field
+                label="Business email"
+                error={secretError("contactInformation.email")}
+              >
                 <Input
                   type="email"
                   maxLength={180}
@@ -670,21 +796,30 @@ export default function WebsitePromptBuilderPage() {
                   onChange={(e) => contact("email", e.target.value)}
                 />
               </Field>
-              <Field label="Address">
+              <Field
+                label="Address"
+                error={secretError("contactInformation.address")}
+              >
                 <Input
                   maxLength={500}
                   value={form.contactInformation.address}
                   onChange={(e) => contact("address", e.target.value)}
                 />
               </Field>
-              <Field label="Social links">
+              <Field
+                label="Social links"
+                error={secretError("contactInformation.socialLinks")}
+              >
                 <Textarea
                   maxLength={1500}
                   value={form.contactInformation.socialLinks}
                   onChange={(e) => contact("socialLinks", e.target.value)}
                 />
               </Field>
-              <Field label="Opening hours">
+              <Field
+                label="Opening hours"
+                error={secretError("contactInformation.openingHours")}
+              >
                 <Textarea
                   maxLength={500}
                   value={form.contactInformation.openingHours}
@@ -788,6 +923,11 @@ export default function WebsitePromptBuilderPage() {
                         }))
                       }
                     />
+                    {secretError(`outputs.${key}`) && (
+                      <p className="mt-2 text-xs text-destructive" role="alert">
+                        {secretError(`outputs.${key}`)}
+                      </p>
+                    )}
                   </TabsContent>
                 ),
               )}

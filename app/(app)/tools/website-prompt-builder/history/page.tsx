@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { WebsitePromptProject } from "@/types/website-prompt";
+import { useWebsitePromptAccess } from "@/components/website-prompt/access-gate";
 
 function download(project: WebsitePromptProject) {
   const text =
@@ -32,6 +33,7 @@ function download(project: WebsitePromptProject) {
 }
 
 export default function WebsitePromptHistoryPage() {
+  const { readOnly, showAccessModal } = useWebsitePromptAccess();
   const [projects, setProjects] = React.useState<WebsitePromptProject[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
@@ -55,6 +57,7 @@ export default function WebsitePromptHistoryPage() {
   React.useEffect(load, [load]);
 
   const remove = async (project: WebsitePromptProject) => {
+    if (readOnly) return showAccessModal();
     if (
       !window.confirm(
         `Delete “${project.project_name}”? This cannot be undone.`,
@@ -72,6 +75,7 @@ export default function WebsitePromptHistoryPage() {
     setMessage("Project deleted.");
   };
   const duplicate = async (project: WebsitePromptProject) => {
+    if (readOnly) return showAccessModal();
     const formData = {
       ...project.form_data,
       projectName: `${project.project_name} copy`,
@@ -92,6 +96,7 @@ export default function WebsitePromptHistoryPage() {
     setMessage("Project duplicated.");
   };
   const rename = async (project: WebsitePromptProject) => {
+    if (readOnly) return showAccessModal();
     const name = window
       .prompt("New project name", project.project_name)
       ?.trim();
@@ -132,16 +137,24 @@ export default function WebsitePromptHistoryPage() {
         <div>
           <h1 className="text-3xl font-bold">My Website Prompts</h1>
           <p className="mt-2 text-muted-foreground">
-            Open, edit, copy, download, duplicate, rename, or delete your saved
-            projects.
+            {readOnly
+              ? "Your subscription has ended. You can still copy and download saved prompts."
+              : "Open, edit, copy, download, duplicate, rename, or delete your saved projects."}
           </p>
         </div>
-        <Button asChild>
-          <Link href="/tools/website-prompt-builder">
+        {readOnly ? (
+          <Button onClick={() => showAccessModal()}>
             <Plus className="mr-2 h-4 w-4" />
-            New Website Prompt
-          </Link>
-        </Button>
+            Renew to create
+          </Button>
+        ) : (
+          <Button asChild>
+            <Link href="/tools/website-prompt-builder">
+              <Plus className="mr-2 h-4 w-4" />
+              New Website Prompt
+            </Link>
+          </Button>
+        )}
       </div>
       {error && (
         <div
@@ -172,8 +185,14 @@ export default function WebsitePromptHistoryPage() {
             <p className="mb-5 mt-2 text-muted-foreground">
               Create your first detailed website brief in seven simple steps.
             </p>
-            <Button asChild>
-              <Link href="/tools/website-prompt-builder">Create a prompt</Link>
+            <Button
+              onClick={() =>
+                readOnly
+                  ? showAccessModal()
+                  : window.location.assign("/tools/website-prompt-builder")
+              }
+            >
+              {readOnly ? "Renew access" : "Create a prompt"}
             </Button>
           </CardContent>
         </Card>
@@ -203,14 +222,16 @@ export default function WebsitePromptHistoryPage() {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Button asChild size="sm">
-                      <Link
-                        href={`/tools/website-prompt-builder?project=${project.id}`}
-                      >
-                        <Edit3 className="mr-2 h-4 w-4" />
-                        Open & Edit
-                      </Link>
-                    </Button>
+                    {!readOnly && (
+                      <Button asChild size="sm">
+                        <Link
+                          href={`/tools/website-prompt-builder?project=${project.id}`}
+                        >
+                          <Edit3 className="mr-2 h-4 w-4" />
+                          Open & Edit
+                        </Link>
+                      </Button>
+                    )}
                     <Button
                       size="sm"
                       variant="outline"
@@ -227,28 +248,34 @@ export default function WebsitePromptHistoryPage() {
                       <Download className="mr-2 h-4 w-4" />
                       Download
                     </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => duplicate(project)}
-                    >
-                      Duplicate
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => rename(project)}
-                    >
-                      Rename
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="destructive"
-                      onClick={() => remove(project)}
-                    >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
-                    </Button>
+                    {!readOnly && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => duplicate(project)}
+                      >
+                        Duplicate
+                      </Button>
+                    )}
+                    {!readOnly && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => rename(project)}
+                      >
+                        Rename
+                      </Button>
+                    )}
+                    {!readOnly && (
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => remove(project)}
+                      >
+                        <Trash2 className="mr-2 h-4 w-4" />
+                        Delete
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
