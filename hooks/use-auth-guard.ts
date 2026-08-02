@@ -15,6 +15,7 @@ const AUTH_ROUTES = [
   "/client-reviews",
   "/admin",
   "/notifications",
+  "/tools",
 ];
 
 export function useAuthGuard() {

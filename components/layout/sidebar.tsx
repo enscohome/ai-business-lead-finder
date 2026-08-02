@@ -15,6 +15,7 @@ import {
   Building2,
   UserCircle,
   Star,
+  WandSparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ThemeToggle } from "./theme-toggle";
@@ -25,6 +26,11 @@ const navigation = [
   { name: "Saved Leads", href: "/leads", icon: Users },
   { name: "Freelancer Profile", href: "/profile", icon: UserCircle },
   { name: "Client Reviews", href: "/client-reviews", icon: Star },
+  {
+    name: "Website Prompt Builder",
+    href: "/tools/website-prompt-builder",
+    icon: WandSparkles,
+  },
   { name: "Team", href: "/team", icon: Building2 },
 ];
 
@@ -42,7 +48,11 @@ export function Sidebar() {
           onClick={() => setMobileOpen(!mobileOpen)}
           className="h-10 w-10 bg-background/80 backdrop-blur-sm border"
         >
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          {mobileOpen ? (
+            <X className="h-5 w-5" />
+          ) : (
+            <Menu className="h-5 w-5" />
+          )}
         </Button>
       </div>
 
@@ -58,29 +68,31 @@ export function Sidebar() {
       <div
         className={cn(
           "fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:h-screen flex flex-col",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
+          mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         {/* Logo */}
-        <Link href="/dashboard" className="flex items-center gap-3 px-6 py-5 border-b hover:bg-accent/50 transition-colors">
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-3 px-6 py-5 border-b hover:bg-accent/50 transition-colors"
+        >
           <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
             <Zap className="h-5 w-5 text-white" />
           </div>
           <div>
-           <h1 className="text-lg font-bold leading-tight">
-  LeadPilot AI
-</h1>
+            <h1 className="text-lg font-bold leading-tight">LeadPilot AI</h1>
 
-<p className="text-xs text-muted-foreground">
-  Find Your Next Client
-</p>
+            <p className="text-xs text-muted-foreground">
+              Find Your Next Client
+            </p>
           </div>
         </Link>
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-4 space-y-1">
           {navigation.map((item) => {
-            const isActive = pathname === item.href;
+            const isActive =
+              pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
               <Link
                 key={item.name}
@@ -90,10 +102,12 @@ export function Sidebar() {
                   "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
                   isActive
                     ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                    : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                 )}
               >
-                <item.icon className={cn("h-5 w-5", isActive && "text-primary")} />
+                <item.icon
+                  className={cn("h-5 w-5", isActive && "text-primary")}
+                />
                 {item.name}
               </Link>
             );
@@ -108,7 +122,7 @@ export function Sidebar() {
               "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
               pathname === "/settings"
                 ? "bg-primary/10 text-primary"
-                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
             )}
           >
             <Settings className="h-5 w-5" />
