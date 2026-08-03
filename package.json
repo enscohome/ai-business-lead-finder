@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "next lint",
     "format": "prettier --write .",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:automation-security": "node --test tests/automation-usage-security.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.0.4",

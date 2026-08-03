@@ -247,7 +247,6 @@ export async function POST(request: NextRequest) {
       {
         p_user_id: user.id,
         p_project_id: requestedProjectId,
-        p_limit: entitlement.generationsLimit,
         p_project_name: requirements.projectName,
         p_client_name: requirements.clientName,
         p_business_type: requirements.businessType,

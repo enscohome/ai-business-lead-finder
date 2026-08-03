@@ -120,10 +120,74 @@ CREATE TRIGGER automation_workflow_projects_updated_at
   BEFORE UPDATE ON public.automation_workflow_projects
   FOR EACH ROW EXECUTE FUNCTION public.set_automation_workflow_updated_at();
 
+-- The earlier builder migrations exposed two limit-taking functions to
+-- authenticated clients. Keep those implementation functions available to
+-- trusted SECURITY DEFINER code, but do not let clients choose a ceiling.
+REVOKE ALL ON FUNCTION public.consume_website_prompt_generation(UUID,INTEGER)
+  FROM PUBLIC, authenticated;
+REVOKE ALL ON FUNCTION public.consume_website_prompt_allowance(UUID,INTEGER)
+  FROM PUBLIC, authenticated;
+
+-- This is the only allowance-consumption function callable by authenticated
+-- clients. It accepts no limit and derives the real ceiling from the user's
+-- trusted profile and the existing paid-plan entitlement function.
+CREATE OR REPLACE FUNCTION public.consume_website_prompt_generation(p_user_id UUID)
+RETURNS INTEGER
+LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$
+DECLARE
+  v_plan TEXT;
+  v_limit INTEGER;
+  v_current_usage INTEGER;
+BEGIN
+  IF auth.uid() IS NULL OR auth.uid() <> p_user_id THEN
+    RETURN NULL;
+  END IF;
+
+  IF public.is_leadpilot_owner() THEN
+    SELECT COALESCE(website_prompt_generations_used,0)
+      INTO v_current_usage
+    FROM public.user_profiles
+    WHERE id=p_user_id;
+    RETURN COALESCE(v_current_usage,0);
+  END IF;
+
+  SELECT plan INTO v_plan
+  FROM public.user_profiles
+  WHERE id=p_user_id;
+
+  IF v_plan IS NULL OR NOT public.has_website_prompt_access(true) THEN
+    RETURN NULL;
+  END IF;
+
+  v_limit := CASE v_plan
+    WHEN 'starter' THEN 50
+    WHEN 'pro' THEN 250
+    WHEN 'agency' THEN 750
+    ELSE 0
+  END;
+  IF v_limit < 1 THEN
+    RETURN NULL;
+  END IF;
+
+  -- The two-argument implementation independently verifies this derived limit
+  -- against the same trusted plan record and atomically applies the period cap.
+  RETURN public.consume_website_prompt_generation(p_user_id,v_limit);
+END $$;
+
+REVOKE ALL ON FUNCTION public.consume_website_prompt_generation(UUID)
+  FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.consume_website_prompt_generation(UUID)
+  TO authenticated;
+
+-- Remove the vulnerable overload if an earlier draft of this unapplied
+-- migration was ever installed in a disposable database.
+DROP FUNCTION IF EXISTS public.save_automation_workflow_generation(
+  UUID,UUID,INTEGER,TEXT,TEXT,TEXT,TEXT,TEXT,JSONB,JSONB,JSONB,TEXT,JSONB,JSONB,TEXT
+);
+
 CREATE OR REPLACE FUNCTION public.save_automation_workflow_generation(
   p_user_id UUID,
   p_project_id UUID,
-  p_limit INTEGER,
   p_project_name TEXT,
   p_client_name TEXT,
   p_business_type TEXT,
@@ -152,7 +216,7 @@ BEGIN
     RAISE EXCEPTION 'PREMIUM_ACCESS_REQUIRED';
   END IF;
 
-  SELECT public.consume_website_prompt_generation(p_user_id, p_limit)
+  SELECT public.consume_website_prompt_generation(p_user_id)
     INTO v_usage_count;
   IF v_usage_count IS NULL THEN
     RAISE EXCEPTION 'USAGE_LIMIT_REACHED';
@@ -220,10 +284,10 @@ BEGIN
 END $$;
 
 REVOKE ALL ON FUNCTION public.save_automation_workflow_generation(
-  UUID,UUID,INTEGER,TEXT,TEXT,TEXT,TEXT,TEXT,JSONB,JSONB,JSONB,TEXT,JSONB,JSONB,TEXT
+  UUID,UUID,TEXT,TEXT,TEXT,TEXT,TEXT,JSONB,JSONB,JSONB,TEXT,JSONB,JSONB,TEXT
 ) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.save_automation_workflow_generation(
-  UUID,UUID,INTEGER,TEXT,TEXT,TEXT,TEXT,TEXT,JSONB,JSONB,JSONB,TEXT,JSONB,JSONB,TEXT
+  UUID,UUID,TEXT,TEXT,TEXT,TEXT,TEXT,JSONB,JSONB,JSONB,TEXT,JSONB,JSONB,TEXT
 ) TO authenticated;
 
 CREATE OR REPLACE FUNCTION public.record_automation_validation_failure(

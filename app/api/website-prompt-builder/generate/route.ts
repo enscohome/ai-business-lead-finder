@@ -92,7 +92,6 @@ export async function POST(request: NextRequest) {
         "consume_website_prompt_generation",
         {
           p_user_id: user.id,
-          p_limit: entitlement.generationsLimit,
         },
       );
       consumed = data;
