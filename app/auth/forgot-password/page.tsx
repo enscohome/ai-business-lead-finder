@@ -2,7 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { Zap, Mail, ArrowLeft, CheckCircle } from "lucide-react";
+import { Mail, ArrowLeft, CheckCircle } from "lucide-react";
+import { LeadPilotLogo } from "@/components/branding/leadpilot-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,9 +27,7 @@ export default function ForgotPasswordPage() {
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-2">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600">
-            <Zap className="h-7 w-7 text-white" />
-          </div>
+          <LeadPilotLogo size="large" priority />
           <h1 className="text-2xl font-bold">Reset Password</h1>
         </div>
 
