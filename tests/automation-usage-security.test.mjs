@@ -17,6 +17,7 @@ const projectRoute = read(
 const websitePromptRoute = read(
   "app/api/website-prompt-builder/generate/route.ts",
 );
+const workflowValidator = read("lib/automation-builder/validator.ts");
 const plans = read("lib/plans.ts");
 
 function functionBody(sql, signaturePattern, returnPattern) {
@@ -110,14 +111,78 @@ test("ownership checks prevent cross-user project modification", () => {
 });
 
 test("validation failures occur before the atomic usage-saving RPC", () => {
-  const validationFailure = automationRoute.indexOf("if (!validation.valid)");
-  const saveRpc = automationRoute.indexOf(
-    'supabase.rpc(\n      "save_automation_workflow_generation"',
+  function assertSafeOrdering(routeSource) {
+    const inputSecretScan = routeSource.indexOf("const secretFields = [");
+    const inputSecretRejection = routeSource.indexOf(
+      "if (secretFields.length)",
+      inputSecretScan,
+    );
+    const firstWorkflowValidation = routeSource.indexOf(
+      "const firstValidation = validateN8nWorkflow(workflow);",
+    );
+    const validationFailure = routeSource.indexOf("if (!validation.valid)");
+    const saveRpc = routeSource.indexOf(
+      '"save_automation_workflow_generation"',
+    );
+    assert.ok(inputSecretScan >= 0, "Input secret detection must be present.");
+    assert.ok(
+      inputSecretRejection > inputSecretScan &&
+        firstWorkflowValidation > inputSecretRejection,
+      "Input secrets must be rejected before generated workflow validation.",
+    );
+    assert.ok(
+      validationFailure > firstWorkflowValidation,
+      "The final validation decision must follow workflow validation.",
+    );
+    assert.ok(
+      saveRpc > validationFailure,
+      "Usage-saving must happen only after validation succeeds.",
+    );
+
+    const usageRpcCalls = Array.from(
+      routeSource.matchAll(
+        /"(save_automation_workflow_generation|consume_website_prompt_generation|consume_website_prompt_allowance)"/g,
+      ),
+    );
+    assert.deepEqual(
+      usageRpcCalls.map((match) => match[1]),
+      ["save_automation_workflow_generation"],
+    );
+    assert.ok(
+      usageRpcCalls.every((match) => (match.index ?? -1) > validationFailure),
+      "No usage-saving or usage-deduction RPC may precede validation.",
+    );
+
+    const failurePath = routeSource.slice(validationFailure, saveRpc);
+    assert.match(failurePath, /recordValidationFailure/);
+    assert.doesNotMatch(failurePath, /consume_website_prompt_generation/);
+  }
+
+  assertSafeOrdering(automationRoute);
+  assertSafeOrdering(automationRoute.replace(/\r?\n/g, "\r\n"));
+
+  const validatorStart = workflowValidator.indexOf(
+    "export function validateN8nWorkflow",
   );
-  assert.ok(validationFailure >= 0 && saveRpc > validationFailure);
-  const failurePath = automationRoute.slice(validationFailure, saveRpc);
-  assert.match(failurePath, /recordValidationFailure/);
-  assert.doesNotMatch(failurePath, /consume_website_prompt_generation/);
+  const generatedSecretScan = workflowValidator.indexOf(
+    "const secretFields = findAutomationSecrets(workflow);",
+    validatorStart,
+  );
+  const generatedSecretRejection = workflowValidator.indexOf(
+    "if (secretFields.length)",
+    generatedSecretScan,
+  );
+  const validationReturn = workflowValidator.indexOf(
+    "valid: errors.length === 0",
+    generatedSecretScan,
+  );
+  assert.ok(
+    validatorStart >= 0 &&
+      generatedSecretScan > validatorStart &&
+      generatedSecretRejection > generatedSecretScan &&
+      validationReturn > generatedSecretRejection,
+    "Generated-workflow secret detection must complete before validation can succeed.",
+  );
 
   const validationRecorder = functionBody(
     migration,
