@@ -31,6 +31,11 @@ export interface AutomationRequirements {
   humanApproval: string;
 }
 
+export interface AutomationConversationMessage {
+  role: "assistant" | "user";
+  content: string;
+}
+
 export type SupportedNodeKey =
   | "manualTrigger"
   | "webhook"

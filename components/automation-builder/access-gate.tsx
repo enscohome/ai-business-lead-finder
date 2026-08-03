@@ -32,7 +32,7 @@ export function useAutomationBuilderAccess() {
 }
 
 const benefits = [
-  "Guided automation requirements and follow-up questions",
+  "Simple chat-based automation design",
   "Validated importable n8n workflow JSON",
   "Professional PDF setup guide",
   "Visual workflow preview and saved project history",
