@@ -3,8 +3,8 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { 
-  Zap, Search, Target, MessageSquare, BarChart3, Shield, 
+import {
+  Search, Target, MessageSquare, BarChart3, Shield,
   Check, ArrowRight, Star, MapPin, Phone, Globe,
   Users, Clock, Award, TrendingUp
 } from "lucide-react";
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { LeadPilotLogo } from "@/components/branding/leadpilot-logo";
 
 const features = [
   {
@@ -101,12 +102,14 @@ export default function LandingPage() {
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
-                <Zap className="h-5 w-5 text-white" />
-              </div>
+            <Link
+              href="/dashboard"
+              aria-label="LeadPilot AI dashboard"
+              className="flex items-center gap-2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <LeadPilotLogo size="standard" priority />
               <span className="text-xl font-bold">LeadPilot AI</span>
-            </div>
+            </Link>
             <div className="hidden md:flex items-center gap-6">
               <a href="#features" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Features</a>
               <a href="#pricing" className="text-sm text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
@@ -387,9 +390,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8">
             <div className="col-span-2 md:col-span-1">
               <div className="flex items-center gap-2 mb-4">
-                <div className="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
-                  <Zap className="h-4 w-4 text-white" />
-                </div>
+                <LeadPilotLogo size="compact" />
                 <span className="font-bold">LeadPilot AI</span>
               </div>
               <p className="text-sm text-muted-foreground">

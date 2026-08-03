@@ -8,9 +8,10 @@
   "theme_color": "#6366f1",
   "icons": [
     {
-      "src": "/favicon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml"
+      "src": "/brand/leadpilot-logo.png",
+      "sizes": "496x496",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }

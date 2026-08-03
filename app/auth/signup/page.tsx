@@ -3,8 +3,10 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Zap, Mail, Lock, Eye, EyeOff, User } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff, User } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { GoogleAuthButton } from "@/components/auth/google-auth-button";
+import { LeadPilotLogo } from "@/components/branding/leadpilot-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,7 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export default function SignupPage() {
   const router = useRouter();
-  const supabase = createClient();
+  const supabase = React.useMemo(() => createClient(), []);
 
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -20,19 +22,6 @@ export default function SignupPage() {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [message, setMessage] = React.useState("");
-
-  const handleGoogleSignIn = async () => {
-    setIsLoading(true);
-    setMessage("");
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/auth/callback?next=/dashboard` },
-    });
-    if (error) {
-      setMessage(error.message);
-      setIsLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,9 +61,7 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center bg-muted/30 p-4">
       <div className="w-full max-w-md space-y-6">
         <div className="flex flex-col items-center gap-2">
-          <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600">
-            <Zap className="h-7 w-7 text-white" />
-          </div>
+          <LeadPilotLogo size="large" priority />
 
           <h1 className="text-2xl font-bold">Create Account</h1>
           <p className="text-muted-foreground text-sm">
@@ -84,10 +71,7 @@ export default function SignupPage() {
 
         <Card>
           <CardContent className="p-6">
-            <Button type="button" variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isLoading}>
-              <span className="mr-2 font-bold text-blue-600">G</span>
-              Continue with Google
-            </Button>
+            <GoogleAuthButton />
             <div className="my-4 flex items-center gap-3 text-xs text-muted-foreground">
               <div className="h-px flex-1 bg-border" />
               <span>OR CONTINUE WITH EMAIL</span>

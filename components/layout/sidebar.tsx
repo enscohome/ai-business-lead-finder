@@ -9,7 +9,6 @@ import {
   Users,
   BarChart3,
   Settings,
-  Zap,
   Menu,
   X,
   Building2,
@@ -18,6 +17,7 @@ import {
   WandSparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { LeadPilotLogo } from "@/components/branding/leadpilot-logo";
 import { ThemeToggle } from "./theme-toggle";
 
 const navigation = [
@@ -74,11 +74,10 @@ export function Sidebar() {
         {/* Logo */}
         <Link
           href="/dashboard"
+          onClick={() => setMobileOpen(false)}
           className="flex items-center gap-3 px-6 py-5 border-b hover:bg-accent/50 transition-colors"
         >
-          <div className="flex items-center justify-center w-9 h-9 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600">
-            <Zap className="h-5 w-5 text-white" />
-          </div>
+          <LeadPilotLogo size="standard" priority />
           <div>
             <h1 className="text-lg font-bold leading-tight">LeadPilot AI</h1>
 

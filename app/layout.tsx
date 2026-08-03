@@ -4,7 +4,10 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 
 const inter = Inter({ subsets: ["latin"] });
-const publicAppUrl = process.env.NEXT_PUBLIC_APP_URL || "https://leadpilot.ai";
+const publicAppUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  process.env.NEXT_PUBLIC_APP_URL ||
+  "https://leadpilot.ai";
 
 export const metadata: Metadata = {
   title: {
@@ -34,9 +37,9 @@ export const metadata: Metadata = {
     follow: true,
   },
   icons: {
-    icon: "/favicon.ico",
-    shortcut: "/favicon-16x16.png",
-    apple: "/apple-touch-icon.png",
+    icon: "/brand/leadpilot-logo.png",
+    shortcut: "/brand/leadpilot-logo.png",
+    apple: "/brand/leadpilot-logo.png",
   },
   manifest: "/site.webmanifest",
 };
