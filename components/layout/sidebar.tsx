@@ -15,6 +15,7 @@ import {
   UserCircle,
   Star,
   WandSparkles,
+  Workflow,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LeadPilotLogo } from "@/components/branding/leadpilot-logo";
@@ -30,6 +31,11 @@ const navigation = [
     name: "Website Prompt Builder",
     href: "/tools/website-prompt-builder",
     icon: WandSparkles,
+  },
+  {
+    name: "AI Automation Builder",
+    href: "/tools/automation-builder",
+    icon: Workflow,
   },
   { name: "Team", href: "/team", icon: Building2 },
 ];

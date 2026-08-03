@@ -38,6 +38,12 @@ const websitePromptBuilder = new Set([
   "website_prompt_builder",
 ]);
 const websitePromptPricing = new Set(["website_prompt_builder_expired"]);
+const automationBuilder = new Set([
+  "automation_workflow_generated",
+  "automation_workflow_regenerated",
+  "automation_workflow_validation_failed",
+  "automation_workflow_project",
+]);
 const jobTypes = new Set([
   "job",
   "job_post",
@@ -73,6 +79,14 @@ export function getNotificationDestination(
   if (websitePromptPricing.has(type)) return "/pricing";
   if (websitePromptBuilder.has(type) || websitePromptBuilder.has(entity))
     return "/tools/website-prompt-builder";
+  if (
+    automationBuilder.has(type) ||
+    automationBuilder.has(entity) ||
+    type.startsWith("automation_workflow_")
+  )
+    return id
+      ? `/tools/automation-builder?project=${encodeURIComponent(id)}`
+      : "/tools/automation-builder/history";
   if (
     jobTypes.has(type) ||
     ["job", "job_post", "job_application", "job_invitation"].includes(entity)
