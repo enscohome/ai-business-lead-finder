@@ -10,7 +10,8 @@
     "format": "prettier --write .",
     "type-check": "tsc --noEmit",
     "test:automation-security": "node --test tests/automation-usage-security.test.mjs",
-    "test:automation-ux": "node --test tests/automation-conversation.test.mjs"
+    "test:automation-ux": "node --test tests/automation-conversation.test.mjs",
+    "test:opportunities-security": "node --test tests/job-opportunities-security.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.0.4",

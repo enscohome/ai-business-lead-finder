@@ -16,6 +16,8 @@ import {
   Star,
   WandSparkles,
   Workflow,
+  BriefcaseBusiness,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LeadPilotLogo } from "@/components/branding/leadpilot-logo";
@@ -27,6 +29,8 @@ const navigation = [
   { name: "Saved Leads", href: "/leads", icon: Users },
   { name: "Freelancer Profile", href: "/profile", icon: UserCircle },
   { name: "Client Reviews", href: "/client-reviews", icon: Star },
+  { name: "Job Opportunities", href: "/opportunities", icon: BriefcaseBusiness },
+  { name: "Messages", href: "/messages", icon: MessageSquare },
   {
     name: "Website Prompt Builder",
     href: "/tools/website-prompt-builder",

@@ -60,7 +60,13 @@ const jobTypes = new Set([
   "invitation_received",
   "invitation_accepted",
   "invitation_declined",
+  "opportunity_approved",
+  "opportunity_rejected",
+  "opportunity_completed",
 ]);
+const opportunityApplicantTypes = new Set(["application_submitted", "opportunity_application_received"]);
+const opportunityApplicationTypes = new Set(["application_shortlisted", "application_accepted", "application_rejected"]);
+const opportunityMessageTypes = new Set(["opportunity_message", "new_opportunity_message"]);
 export function getNotificationDestination(
   n: Pick<
     AppNotification,
@@ -88,18 +94,22 @@ export function getNotificationDestination(
       ? `/tools/automation-builder?project=${encodeURIComponent(id)}`
       : "/tools/automation-builder/history";
   if (
-    jobTypes.has(type) ||
-    ["job", "job_post", "job_application", "job_invitation"].includes(entity)
+    opportunityMessageTypes.has(type) || entity === "opportunity_conversation"
   )
-    return id ? `/jobs/${id}` : null;
+    return id ? `/messages/${encodeURIComponent(id)}` : "/messages";
+  if (opportunityApplicantTypes.has(type) || entity === "opportunity_applicants")
+    return id ? `/opportunities/${encodeURIComponent(id)}/applications` : "/opportunities/my-posts";
+  if (opportunityApplicationTypes.has(type) || entity === "opportunity_application")
+    return id ? `/opportunities/my-applications?application=${encodeURIComponent(id)}` : "/opportunities/my-applications";
+  if (
+    jobTypes.has(type) ||
+    ["job", "job_post", "opportunity", "job_invitation"].includes(entity)
+  )
+    return id ? `/opportunities/${encodeURIComponent(id)}` : "/opportunities";
   if (type.startsWith("admin_moderation") || entity === "admin_moderation")
     return "/admin/freelancers";
   return null;
 }
 export function isDestinationAvailable(destination: string | null) {
-  return Boolean(
-    destination &&
-    !destination.startsWith("/jobs/") &&
-    !destination.startsWith("/admin/jobs"),
-  );
+  return Boolean(destination);
 }
