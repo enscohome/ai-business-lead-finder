@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   let query = auth.supabase.from("opportunities").select("*");
   if (mode === "my-posts") query = query.eq("owner_id", auth.user.id);
   else if (mode === "feed" || mode === "saved")
-    query = query.eq("status", "open").not("approved_at", "is", null);
+    query = query.in("status", ["approved", "awaiting_assignment"]).not("approved_at", "is", null);
   const status = params.get("status");
   if (mode === "my-posts" && status && status !== "all") query = query.eq("status", status);
   for (const [key, column] of [
@@ -88,10 +88,13 @@ export async function POST(request: NextRequest) {
   const { data, error } = await auth.admin.from("opportunities").insert({
     ...input,
     owner_id: auth.user.id,
+    client_user_id: auth.user.id,
+    created_by: auth.user.id,
     status: "pending_review",
     approved_at: null,
     approved_by: null,
   }).select("*").single();
   if (error) return NextResponse.json({ error: "Could not create this opportunity." }, { status: 400 });
+  await auth.admin.from("opportunity_status_events").insert({ opportunity_id: data.id, previous_status: null, new_status: "pending_review", changed_by: auth.user.id, reason: "Submitted by client" });
   return NextResponse.json({ opportunity: data }, { status: 201 });
 }

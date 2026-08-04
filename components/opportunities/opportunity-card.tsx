@@ -22,7 +22,7 @@ export function OpportunityCard({ opportunity, onSaved }: { opportunity: JobOppo
       <CardHeader className="space-y-3">
         <div className="flex items-start justify-between gap-3">
           <Badge variant="secondary">{opportunity.category}</Badge>
-          {opportunity.status !== "open" && <Badge variant="outline" className="capitalize">{opportunity.status.replace("_", " ")}</Badge>}
+          {!['approved','awaiting_assignment'].includes(opportunity.status) && <Badge variant="outline" className="capitalize">{opportunity.status.replace("_", " ")}</Badge>}
         </div>
         <CardTitle className="text-lg leading-snug"><Link className="hover:text-primary" href={`/opportunities/${opportunity.id}`}>{opportunity.title}</Link></CardTitle>
         <p className="line-clamp-3 text-sm text-muted-foreground">{opportunity.description}</p>
@@ -38,7 +38,7 @@ export function OpportunityCard({ opportunity, onSaved }: { opportunity: JobOppo
         <p className="text-xs text-muted-foreground">Posted by {opportunity.poster_name || "LeadPilot member"}</p>
       </CardContent>
       <CardFooter className="gap-2">
-        {opportunity.status === "open" && <Button variant="outline" size="icon" aria-label={saved ? "Remove saved opportunity" : "Save opportunity"} disabled={busy} onClick={save}><Bookmark className={`h-4 w-4 ${saved ? "fill-current text-primary" : ""}`} /></Button>}
+        {['approved','awaiting_assignment'].includes(opportunity.status) && <Button variant="outline" size="icon" aria-label={saved ? "Remove saved opportunity" : "Save opportunity"} disabled={busy} onClick={save}><Bookmark className={`h-4 w-4 ${saved ? "fill-current text-primary" : ""}`} /></Button>}
         <Button asChild className="flex-1"><Link href={`/opportunities/${opportunity.id}`}>View opportunity</Link></Button>
       </CardFooter>
     </Card>

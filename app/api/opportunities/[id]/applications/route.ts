@@ -10,6 +10,7 @@ import {
   requireOpportunityUser,
 } from "@/lib/job-opportunities-server";
 import { ratingSummary } from "@/lib/freelancer";
+import { verifiedUserIds } from "@/lib/control-centre";
 
 export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
   const auth = await requireOpportunityUser();
@@ -21,6 +22,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
   const { data, error } = await auth.admin.from("opportunity_applications").select("*").eq("opportunity_id", params.id).order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: "Could not load applicants." }, { status: 400 });
   const userIds = (data || []).map((row: any) => row.applicant_id);
+  const verified = await verifiedUserIds(auth.admin, userIds);
   const { data: profiles } = userIds.length
     ? await auth.admin.from("freelancer_profiles").select("id,user_id,username,display_name,full_name,professional_title,profile_image_url,skills,verification_status").in("user_id", userIds)
     : { data: [] as any[] };
@@ -37,7 +39,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
       const summary = ratingSummary((reviews || []).filter((r: any) => r.freelancer_id === freelancer?.id).map((r: any) => r.rating));
       return {
         ...application,
-        freelancer: freelancer ? { ...freelancer, rating: summary.average, review_count: summary.total, portfolio: (portfolio || []).filter((p: any) => p.freelancer_id === freelancer.id).slice(0, 3) } : null,
+        freelancer: freelancer ? { ...freelancer, is_verified: verified.has(application.applicant_id), rating: summary.average, review_count: summary.total, portfolio: (portfolio || []).filter((p: any) => p.freelancer_id === freelancer.id).slice(0, 3) } : null,
         conversation_id: (conversations || []).find((c: any) => c.application_id === application.id)?.id || null,
       };
     }),
@@ -60,7 +62,7 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
     auth.admin.from("freelancer_profiles").select("id").eq("user_id", auth.user.id).maybeSingle(),
   ]);
   if (!profile) return NextResponse.json({ error: "Create your freelancer profile before applying." }, { status: 403 });
-  if (!opportunity || opportunity.status !== "open" || !opportunity.approved_at)
+  if (!opportunity || !["approved", "awaiting_assignment"].includes(opportunity.status) || !opportunity.approved_at)
     return NextResponse.json({ error: "This opportunity is not accepting applications." }, { status: 409 });
   if (opportunity.owner_id === auth.user.id)
     return NextResponse.json({ error: "You cannot apply to your own opportunity." }, { status: 409 });

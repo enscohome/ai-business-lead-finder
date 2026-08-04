@@ -19,7 +19,7 @@ export async function GET() {
   if (!auth) return NextResponse.json({ error: "Owner or administrator access required." }, { status: 403 });
   const [pending, recent, reports, events] = await Promise.all([
     auth.admin.from("opportunities").select("*").eq("status", "pending_review").order("created_at").limit(100),
-    auth.admin.from("opportunities").select("*").in("status", ["open","rejected","paused","closed","completed"]).order("updated_at", { ascending: false }).limit(50),
+    auth.admin.from("opportunities").select("*").in("status", ["changes_requested","approved","awaiting_assignment","assigned","in_progress","ready_for_review","revision_requested","rejected","cancelled","completed"]).order("updated_at", { ascending: false }).limit(50),
     auth.admin.from("community_reports").select("*").order("created_at", { ascending: false }).limit(100),
     auth.admin.from("opportunity_moderation_events").select("*").order("created_at", { ascending: false }).limit(100),
   ]);
@@ -62,14 +62,12 @@ export async function PATCH(request: NextRequest) {
   if (!validUuid(body.opportunityId)) return NextResponse.json({ error: "Invalid opportunity ID." }, { status: 400 });
   const { data: opportunity } = await auth.admin.from("opportunities").select("*").eq("id", body.opportunityId).maybeSingle();
   if (!opportunity) return NextResponse.json({ error: "Opportunity not found." }, { status: 404 });
-  if (!["approve","reject","remove","suspend"].includes(action)) return NextResponse.json({ error: "Unknown moderation action." }, { status: 400 });
-  if (["reject","suspend"].includes(action) && reason.length < 5) return NextResponse.json({ error: "Add a clear moderation reason." }, { status: 400 });
-  if (action === "remove") {
-    await auth.admin.from("opportunities").delete().eq("id", opportunity.id);
-  } else {
-    const status = action === "approve" ? "open" : action === "reject" ? "rejected" : "paused";
-    await auth.admin.from("opportunities").update({ status, moderation_reason: reason || null, approved_by: action === "approve" ? auth.user.id : opportunity.approved_by, approved_at: action === "approve" ? new Date().toISOString() : opportunity.approved_at }).eq("id", opportunity.id);
-  }
+  if (!["approve","reject","remove","suspend","request_changes"].includes(action)) return NextResponse.json({ error: "Unknown moderation action." }, { status: 400 });
+  if (["reject","suspend","remove","request_changes"].includes(action) && reason.length < 5) return NextResponse.json({ error: "Add a clear moderation reason." }, { status: 400 });
+  const status = action === "approve" ? "approved" : action === "reject" ? "rejected" : action === "request_changes" ? "changes_requested" : "cancelled";
+  const { error: statusError } = await auth.admin.from("opportunities").update({ status, moderation_reason: reason || null, approved_by: action === "approve" ? auth.user.id : opportunity.approved_by, approved_at: action === "approve" ? new Date().toISOString() : opportunity.approved_at }).eq("id", opportunity.id).eq("status", opportunity.status);
+  if (statusError) return NextResponse.json({ error: "That job-status transition is not allowed." }, { status: 409 });
+  await auth.admin.from("opportunity_status_events").insert({ opportunity_id: opportunity.id, previous_status: opportunity.status, new_status: status, changed_by: auth.user.id, reason });
   await auth.admin.from("opportunity_moderation_events").insert({ opportunity_id: opportunity.id, moderator_id: auth.user.id, action, reason });
   await sendOpportunityNotification(auth.admin, {
     userId: opportunity.owner_id,

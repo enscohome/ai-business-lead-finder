@@ -106,7 +106,7 @@ export default async function FreelancerPage({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   <h1 className="text-3xl font-bold tracking-tight">{name}</h1>
-                  {profile.verificationStatus === "verified" && (
+                  {profile.isLeadPilotVerified && (
                     <VerificationBadge />
                   )}
                 </div>

@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/components/ui/skeleton";
 import { OPPORTUNITY_CATEGORIES, type JobOpportunity } from "@/types/job-opportunity";
 
-const initialFilters = { q: "", category: "all", country: "all", location: "all", budget: "all", experience: "all", date: "all", status: "open" };
+const initialFilters = { q: "", category: "all", country: "all", location: "all", budget: "all", experience: "all", date: "all", status: "approved" };
 export default function OpportunitiesPage() {
   const [filters, setFilters] = React.useState(initialFilters), [rows, setRows] = React.useState<JobOpportunity[]>([]), [loading, setLoading] = React.useState(true), [error, setError] = React.useState("");
   const load = React.useCallback(async () => {
@@ -37,7 +37,7 @@ export default function OpportunitiesPage() {
       <Filter value={filters.budget} onChange={(v) => set("budget", v)} placeholder="Budget type" options={[["fixed","Fixed-price"],["hourly","Hourly"],["negotiable","Negotiable"]]} />
       <Filter value={filters.experience} onChange={(v) => set("experience", v)} placeholder="Experience" options={[["entry","Entry"],["intermediate","Intermediate"],["expert","Expert"]]} />
       <Filter value={filters.date} onChange={(v) => set("date", v)} placeholder="Date posted" options={[["1","Past 24 hours"],["7","Past 7 days"],["30","Past 30 days"]]} />
-      <Filter value={filters.status} onChange={(v) => set("status", v)} placeholder="Status" options={[["open","Open and approved"]]} />
+      <Filter value={filters.status} onChange={(v) => set("status", v)} placeholder="Status" options={[["approved","Approved and accepting applications"]]} />
     </CardContent></Card>
     {error && <p role="alert" className="rounded-lg border border-destructive/20 bg-destructive/10 p-4 text-sm text-destructive">{error}</p>}
     {loading ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{[1,2,3,4,5,6].map((i) => <Skeleton key={i} className="h-80 rounded-xl" />)}</div> : rows.length ? <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{rows.map((row) => <OpportunityCard key={row.id} opportunity={row} />)}</div> : <Card><CardContent className="py-16 text-center"><BriefcaseBusiness className="mx-auto mb-3 h-10 w-10 text-muted-foreground" /><h2 className="font-semibold">No approved opportunities match these filters</h2><p className="mt-1 text-sm text-muted-foreground">Try another filter or post work for the community.</p></CardContent></Card>}

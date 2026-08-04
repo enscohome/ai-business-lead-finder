@@ -23,11 +23,16 @@ export const REPORT_REASONS = [
 
 export type OpportunityStatus =
   | "pending_review"
-  | "open"
-  | "paused"
-  | "closed"
+  | "changes_requested"
+  | "approved"
+  | "awaiting_assignment"
+  | "assigned"
+  | "in_progress"
+  | "ready_for_review"
+  | "revision_requested"
   | "completed"
-  | "rejected";
+  | "rejected"
+  | "cancelled";
 export type ApplicationStatus =
   | "submitted"
   | "shortlisted"
@@ -38,6 +43,10 @@ export type ApplicationStatus =
 export interface JobOpportunity {
   id: string;
   owner_id: string;
+  client_user_id?: string | null;
+  managed_client_name?: string | null;
+  created_by?: string | null;
+  private_owner_notes?: string;
   title: string;
   description: string;
   category: string;
@@ -86,7 +95,8 @@ export interface OpportunityApplication {
 export interface OpportunityConversation {
   id: string;
   opportunity_id: string;
-  application_id: string;
+  application_id: string | null;
+  assignment_id?: string | null;
   job_poster_id: string;
   freelancer_id: string;
   status: "active" | "closed";
@@ -100,5 +110,36 @@ export interface OpportunityConversation {
   unread_count?: number;
   last_message?: string;
   other_name?: string;
+  participants?: Array<{
+    user_id: string;
+    participant_role: "client" | "freelancer" | "owner";
+    display_name?: string;
+    is_verified?: boolean;
+  }>;
 }
 
+export type AssignmentStatus =
+  | "offered"
+  | "accepted"
+  | "in_progress"
+  | "ready_for_review"
+  | "revision_requested"
+  | "completed"
+  | "cancelled";
+
+export interface OpportunityAssignment {
+  id: string;
+  opportunity_id: string;
+  freelancer_id: string;
+  assigned_by: string;
+  status: AssignmentStatus;
+  assigned_at: string;
+  accepted_at: string | null;
+  started_at: string | null;
+  ready_for_review_at: string | null;
+  completed_at: string | null;
+  cancelled_at: string | null;
+  cancellation_reason: string | null;
+  created_at: string;
+  updated_at: string;
+}

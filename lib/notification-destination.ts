@@ -18,6 +18,10 @@ const verificationDecisions = new Set([
   "verification_approved",
   "verification_rejected",
   "verification_suspended",
+  "verification_changes_requested",
+  "verification_revoked",
+  "verification_restored",
+  "verification_under_review",
 ]);
 const verificationApplications = new Set([
   "verification_application",
@@ -44,6 +48,10 @@ const automationBuilder = new Set([
   "automation_workflow_validation_failed",
   "automation_workflow_project",
 ]);
+const verificationApplicantUpdates = new Set([
+  "verification_application_received",
+  "verification_application_status",
+]);
 const jobTypes = new Set([
   "job",
   "job_post",
@@ -63,6 +71,13 @@ const jobTypes = new Set([
   "opportunity_approved",
   "opportunity_rejected",
   "opportunity_completed",
+  "opportunity_assigned",
+  "opportunity_assignment_cancelled",
+  "opportunity_changes_requested",
+  "opportunity_in_progress",
+  "opportunity_ready_for_review",
+  "opportunity_revision_requested",
+  "opportunity_cancelled",
 ]);
 const opportunityApplicantTypes = new Set(["application_submitted", "opportunity_application_received"]);
 const opportunityApplicationTypes = new Set(["application_shortlisted", "application_accepted", "application_rejected"]);
@@ -77,10 +92,13 @@ export function getNotificationDestination(
     entity = (n.related_entity_type || "").toLowerCase(),
     id = n.related_entity_id;
   if (profile.has(type) || profile.has(entity)) return "/profile";
+  if (["account_suspended", "account_restored", "account_status"].includes(type) || entity === "account_status") return "/settings";
   if (reviews.has(type) || reviews.has(entity)) return "/client-reviews";
-  if (verificationDecisions.has(type)) return "/profile?section=verification";
+  if (verificationDecisions.has(type)) return "/profile/verification";
+  if (verificationApplicantUpdates.has(type) || entity === "verification_application_status")
+    return "/profile/verification";
   if (verificationApplications.has(type))
-    return "/admin/freelancers?tab=verification";
+    return "/admin/verifications";
   if (payments.has(type) || payments.has(entity)) return "/pricing";
   if (websitePromptPricing.has(type)) return "/pricing";
   if (websitePromptBuilder.has(type) || websitePromptBuilder.has(entity))

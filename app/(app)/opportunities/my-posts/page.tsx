@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { JobOpportunity } from "@/types/job-opportunity";
 
-const statuses = ["all","pending_review","open","paused","closed","completed","rejected"];
+const statuses = ["all","pending_review","changes_requested","approved","awaiting_assignment","assigned","in_progress","ready_for_review","revision_requested","completed","rejected","cancelled"];
 export default function MyPostsPage() {
   const [status, setStatus] = React.useState("all"), [rows, setRows] = React.useState<JobOpportunity[]>([]), [message, setMessage] = React.useState("");
   React.useEffect(() => { fetch(`/api/opportunities?mode=my-posts&status=${status}`).then(async (r) => { const d = await r.json(); if (r.ok) setRows(d.opportunities); else setMessage(d.error); }); }, [status]);

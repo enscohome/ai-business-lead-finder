@@ -14,8 +14,8 @@ export async function POST(request: NextRequest) {
   const { count } = await auth.admin.from("community_reports").select("id", { count: "exact", head: true }).eq("reporter_id", auth.user.id).gte("created_at", rateLimitWindow());
   if ((count || 0) >= 10) return NextResponse.json({ error: "Daily report limit reached." }, { status: 429 });
   if (entityType === "conversation") {
-    const { data } = await auth.admin.from("opportunity_conversations").select("job_poster_id,freelancer_id").eq("id", body.entityId).maybeSingle();
-    if (!data || ![data.job_poster_id, data.freelancer_id].includes(auth.user.id)) return NextResponse.json({ error: "Conversation not found." }, { status: 404 });
+    const { data } = await auth.admin.from("opportunity_conversation_participants").select("conversation_id").eq("conversation_id", body.entityId).eq("user_id", auth.user.id).is("left_at", null).maybeSingle();
+    if (!data) return NextResponse.json({ error: "Conversation not found." }, { status: 404 });
   } else {
     const { data } = await auth.admin.from("opportunities").select("id").eq("id", body.entityId).maybeSingle();
     if (!data) return NextResponse.json({ error: "Opportunity not found." }, { status: 404 });

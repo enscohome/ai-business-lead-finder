@@ -7,8 +7,8 @@ export async function POST(_: NextRequest, { params }: { params: { id: string } 
   if (!auth) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!validUuid(params.id)) return NextResponse.json({ error: "Invalid opportunity ID." }, { status: 400 });
   const { data: opportunity } = await auth.admin.from("opportunities").select("id,status,approved_at").eq("id", params.id).maybeSingle();
-  if (!opportunity || opportunity.status !== "open" || !opportunity.approved_at)
-    return NextResponse.json({ error: "Only open opportunities can be saved." }, { status: 404 });
+  if (!opportunity || !["approved", "awaiting_assignment"].includes(opportunity.status) || !opportunity.approved_at)
+    return NextResponse.json({ error: "Only approved opportunities can be saved." }, { status: 404 });
   const { error } = await auth.admin.from("saved_opportunities").upsert({ user_id: auth.user.id, opportunity_id: params.id }, { onConflict: "user_id,opportunity_id", ignoreDuplicates: true });
   return error ? NextResponse.json({ error: "Could not save this opportunity." }, { status: 400 }) : NextResponse.json({ saved: true });
 }

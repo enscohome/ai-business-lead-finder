@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { isLeadPilotVerified } from "@/lib/control-centre";
 import {
   calculateProfileCompletion,
   DEFAULT_VISIBILITY,
@@ -71,8 +73,10 @@ export async function GET() {
         .eq("freelancer_id", row.id)
         .order("display_order"),
     ]);
+  const verified = await isLeadPilotVerified(createAdminClient(), user.id);
   const profile = mapProfile({
     ...row,
+    is_leadpilot_verified: verified,
     contact_email: privateData?.contact_email,
     contact_phone: privateData?.contact_phone,
   });
@@ -272,9 +276,11 @@ export async function PUT(request: NextRequest) {
             freelancer_id: profileId,
           })),
         );
+    const isVerified = await isLeadPilotVerified(createAdminClient(), user.id);
     return NextResponse.json({
       profile: mapProfile({
         ...result.data,
+        is_leadpilot_verified: isVerified,
         contact_email: body.contactEmail,
         contact_phone: body.contactPhone,
       }),

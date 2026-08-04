@@ -9,7 +9,6 @@ import {
   isSuspended,
   isOpportunityModerator,
   requireOpportunityUser,
-  sendOpportunityNotification,
   userDisplayNames,
 } from "@/lib/job-opportunities-server";
 
@@ -26,7 +25,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
   const found = await findOpportunity(params.id);
   if (found.response) return found.response;
   const { auth, opportunity } = found as any;
-  const visible = opportunity.status === "open" && opportunity.approved_at || opportunity.owner_id === auth.user.id || await isOpportunityModerator(auth.admin, auth.user.id);
+  const visible = ["approved", "awaiting_assignment"].includes(opportunity.status) && opportunity.approved_at || [opportunity.owner_id, opportunity.client_user_id].includes(auth.user.id) || await isOpportunityModerator(auth.admin, auth.user.id);
   if (!visible) {
     const { data: application } = await auth.admin.from("opportunity_applications").select("id").eq("opportunity_id", opportunity.id).eq("applicant_id", auth.user.id).maybeSingle();
     if (!application) return NextResponse.json({ error: "Opportunity not found." }, { status: 404 });
@@ -65,25 +64,26 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
   const action = String(body.action || "edit");
   if (action === "edit") {
-    if (!["pending_review", "open", "paused"].includes(opportunity.status))
+    if (!["pending_review", "changes_requested"].includes(opportunity.status))
       return NextResponse.json({ error: "This opportunity can no longer be edited." }, { status: 409 });
     const input = sanitizeOpportunityInput(body);
     const validation = opportunityInputError(input);
     if (validation) return NextResponse.json({ error: validation }, { status: 400 });
-    const importantEdit = opportunity.status === "open";
+    const importantEdit = opportunity.status === "changes_requested";
     const { data, error } = await auth.admin.from("opportunities").update({
       ...input,
       ...(importantEdit ? { status: "pending_review", approved_at: null, approved_by: null, moderation_reason: null } : {}),
     }).eq("id", opportunity.id).eq("owner_id", auth.user.id).select("*").single();
     if (error) return NextResponse.json({ error: "Could not update this opportunity." }, { status: 400 });
+    if (importantEdit) await auth.admin.from("opportunity_status_events").insert({ opportunity_id: opportunity.id, previous_status: "changes_requested", new_status: "pending_review", changed_by: auth.user.id, reason: "Client resubmitted requested changes" });
     return NextResponse.json({ opportunity: data, returnedToReview: importantEdit });
   }
   if (action === "review_request") {
     if (opportunity.status !== "completed")
       return NextResponse.json({ error: "Complete the opportunity before requesting a review." }, { status: 409 });
-    const { data: accepted } = await auth.admin.from("opportunity_applications").select("applicant_id").eq("opportunity_id", opportunity.id).eq("status", "accepted").maybeSingle();
-    if (!accepted) return NextResponse.json({ error: "No accepted freelancer was found." }, { status: 409 });
-    const { data: freelancer } = await auth.admin.from("freelancer_profiles").select("id").eq("user_id", accepted.applicant_id).maybeSingle();
+    const { data: assignment } = await auth.admin.from("opportunity_assignments").select("freelancer_id").eq("opportunity_id", opportunity.id).eq("status", "completed").order("completed_at", { ascending: false }).limit(1).maybeSingle();
+    if (!assignment) return NextResponse.json({ error: "No completed freelancer assignment was found." }, { status: 409 });
+    const { data: freelancer } = await auth.admin.from("freelancer_profiles").select("id").eq("user_id", assignment.freelancer_id).maybeSingle();
     if (!freelancer) return NextResponse.json({ error: "The freelancer profile is unavailable." }, { status: 404 });
     const { data: existing } = await auth.admin.from("freelancer_review_requests").select("unique_token").eq("opportunity_id", opportunity.id).maybeSingle();
     if (existing) return NextResponse.json({ reviewUrl: `${request.nextUrl.origin}/review/${existing.unique_token}` });
@@ -100,25 +100,13 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (error) return NextResponse.json({ error: "Could not create the review link." }, { status: 400 });
     return NextResponse.json({ reviewUrl: `${request.nextUrl.origin}/review/${token}` });
   }
-  const transitions: Record<string, string[]> = {
-    pause: ["open"], close: ["open", "paused"], complete: ["open", "paused", "closed"], reopen: ["paused", "closed"],
-  };
+  const transitions: Record<string, string[]> = { cancel: ["pending_review", "changes_requested", "approved", "awaiting_assignment"] };
   if (!transitions[action]?.includes(opportunity.status))
     return NextResponse.json({ error: "That status change is not available." }, { status: 409 });
-  const nextStatus = action === "pause" ? "paused" : action === "close" ? "closed" : action === "complete" ? "completed" : "pending_review";
-  if (action === "complete") {
-    const { data: accepted } = await auth.admin.from("opportunity_applications").select("applicant_id").eq("opportunity_id", opportunity.id).eq("status", "accepted").maybeSingle();
-    if (!accepted) return NextResponse.json({ error: "Accept a freelancer before marking this completed." }, { status: 409 });
-    await auth.admin.from("opportunity_conversations").update({ status: "closed" }).eq("opportunity_id", opportunity.id);
-    await sendOpportunityNotification(auth.admin, {
-      userId: accepted.applicant_id, type: "opportunity_completed", title: "Opportunity completed",
-      message: `${opportunity.title} was marked completed.`, entityType: "opportunity", entityId: opportunity.id,
-      deduplicationKey: `opportunity-completed:${opportunity.id}`,
-    });
-  }
+  const nextStatus = "cancelled";
   const { data, error } = await auth.admin.from("opportunities").update({
     status: nextStatus,
-    ...(action === "reopen" ? { approved_at: null, approved_by: null, moderation_reason: null } : {}),
+    moderation_reason: "Cancelled by client",
   }).eq("id", opportunity.id).select("*").single();
   if (error) return NextResponse.json({ error: "Could not change opportunity status." }, { status: 400 });
   return NextResponse.json({ opportunity: data });
@@ -130,8 +118,9 @@ export async function DELETE(_: NextRequest, { params }: { params: { id: string 
   const { auth, opportunity } = found as any;
   if (opportunity.owner_id !== auth.user.id)
     return NextResponse.json({ error: "Only the job poster can delete this opportunity." }, { status: 403 });
-  const { error } = await auth.admin.from("opportunities").delete().eq("id", opportunity.id).eq("owner_id", auth.user.id);
-  return error
-    ? NextResponse.json({ error: "Could not delete this opportunity." }, { status: 400 })
-    : NextResponse.json({ ok: true });
+  if (!["pending_review", "changes_requested", "approved", "awaiting_assignment"].includes(opportunity.status))
+    return NextResponse.json({ error: "Active or completed projects cannot be deleted." }, { status: 409 });
+  const { error } = await auth.admin.from("opportunities").update({ status: "cancelled", moderation_reason: "Cancelled by client" }).eq("id", opportunity.id).eq("owner_id", auth.user.id);
+  if (!error) await auth.admin.from("opportunity_status_events").insert({ opportunity_id: opportunity.id, previous_status: opportunity.status, new_status: "cancelled", changed_by: auth.user.id, reason: "Cancelled by client" });
+  return error ? NextResponse.json({ error: "Could not cancel this opportunity." }, { status: 400 }) : NextResponse.json({ ok: true });
 }

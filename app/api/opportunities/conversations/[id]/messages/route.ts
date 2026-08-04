@@ -12,10 +12,13 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   try { body = await request.json(); } catch { return NextResponse.json({ error: "Invalid message." }, { status: 400 }); }
   const message = sanitizeText(body.message, 4000);
   if (!message) return NextResponse.json({ error: "Enter a message." }, { status: 400 });
-  const { data: conversation } = await auth.admin.from("opportunity_conversations").select("*").eq("id", params.id).maybeSingle();
-  if (!conversation || ![conversation.job_poster_id, conversation.freelancer_id].includes(auth.user.id))
+  const [{ data: conversation }, { data: membership }] = await Promise.all([
+    auth.admin.from("opportunity_conversations").select("*").eq("id", params.id).maybeSingle(),
+    auth.admin.from("opportunity_conversation_participants").select("left_at").eq("conversation_id", params.id).eq("user_id", auth.user.id).maybeSingle(),
+  ]);
+  if (!conversation || !membership)
     return NextResponse.json({ error: "Conversation not found." }, { status: 404 });
-  if (conversation.status !== "active" || conversation.poster_left_at || conversation.freelancer_left_at)
+  if (conversation.status !== "active" || membership.left_at)
     return NextResponse.json({ error: "This conversation is closed." }, { status: 409 });
   const { data: block } = await auth.admin.from("opportunity_blocks").select("blocker_id").eq("conversation_id", conversation.id).maybeSingle();
   if (block) return NextResponse.json({ error: "Messages are disabled because a participant blocked this conversation." }, { status: 403 });
@@ -23,6 +26,6 @@ export async function POST(request: NextRequest, { params }: { params: { id: str
   if ((count || 0) >= 100) return NextResponse.json({ error: "Hourly message limit reached. Try again later." }, { status: 429 });
   const { data, error } = await auth.admin.from("opportunity_messages").insert({ conversation_id: conversation.id, sender_id: auth.user.id, message }).select("id,conversation_id,sender_id,message,read_at,created_at,updated_at").single();
   if (error) return NextResponse.json({ error: "Could not send this message." }, { status: 400 });
-  await auth.admin.from("opportunity_conversations").update({ updated_at: new Date().toISOString(), poster_archived_at: null, freelancer_archived_at: null }).eq("id", conversation.id);
+  await auth.admin.from("opportunity_conversations").update({ updated_at: new Date().toISOString() }).eq("id", conversation.id);
   return NextResponse.json({ message: data }, { status: 201 });
 }

@@ -72,6 +72,7 @@ export interface FreelancerProfile {
   certifications: CertificationItem[];
   profileCompletionPercentage: number;
   verificationStatus: VerificationStatus;
+  isLeadPilotVerified?: boolean;
   verifiedAt: string | null;
   createdAt: string;
   updatedAt: string;

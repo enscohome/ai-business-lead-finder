@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getPlan } from "@/lib/plans";
 import { sanitizeText } from "@/lib/freelancer";
+import { canAssignOrVerify, getControlCentreRole } from "@/lib/control-centre";
 
 async function authorized() {
   const supabase = createClient();
@@ -75,6 +76,9 @@ export async function PATCH(request: NextRequest) {
         { error: "Invalid verification status." },
         { status: 400 },
       );
+    const controlRole = await getControlCentreRole(admin, auth.user.id);
+    if (body.status === "verified" && !canAssignOrVerify(controlRole))
+      return NextResponse.json({ error: "Only the owner or an administrator may approve verification." }, { status: 403 });
     const now = new Date().toISOString();
     const { error } = await admin
       .from("freelancer_profiles")
@@ -95,6 +99,10 @@ export async function PATCH(request: NextRequest) {
         rejection_reason: sanitizeText(body.reason, 1000) || null,
       })
       .eq("id", body.applicationId);
+    const { data: freelancer } = await admin.from("freelancer_profiles").select("user_id").eq("id", body.freelancerId).maybeSingle();
+    if (freelancer && body.status === "verified") await admin.from("user_verifications").upsert({ user_id: freelancer.user_id, verification_type: "leadpilot_verified", status: "approved", verified_by: auth.user.id, verified_at: now, revoked_by: null, revoked_at: null, revocation_reason: null }, { onConflict: "user_id" });
+    if (freelancer && body.status === "suspended") await admin.from("user_verifications").upsert({ user_id: freelancer.user_id, verification_type: "leadpilot_verified", status: "revoked", revoked_by: auth.user.id, revoked_at: now, revocation_reason: sanitizeText(body.reason, 1000) || "Verification suspended" }, { onConflict: "user_id" });
+    if (freelancer) await admin.from("verification_events").insert({ user_id: freelancer.user_id, application_id: null, moderator_id: auth.user.id, action: body.status === "verified" ? "approved" : body.status === "suspended" ? "revoked" : "rejected", reason: sanitizeText(body.reason, 1000), private_notes: "Decision recorded through the legacy freelancer moderation screen." });
     return error
       ? NextResponse.json({ error: error.message }, { status: 400 })
       : NextResponse.json({ updated: true });

@@ -11,11 +11,16 @@ export const BUDGET_TYPES = ["fixed", "hourly", "negotiable"] as const;
 export const EXPERIENCE_LEVELS = ["entry", "intermediate", "expert"] as const;
 export const OPPORTUNITY_STATUSES = [
   "pending_review",
-  "open",
-  "paused",
-  "closed",
+  "changes_requested",
+  "approved",
+  "awaiting_assignment",
+  "assigned",
+  "in_progress",
+  "ready_for_review",
+  "revision_requested",
   "completed",
   "rejected",
+  "cancelled",
 ] as const;
 
 export function validUuid(value: unknown): value is string {

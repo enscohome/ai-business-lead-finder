@@ -23,19 +23,15 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
     if (nextStatus !== "withdrawn" || application.status !== "submitted")
       return NextResponse.json({ error: "Only a submitted application can be withdrawn." }, { status: 409 });
   } else if (isPoster) {
-    if (!["shortlisted", "accepted", "rejected"].includes(nextStatus))
+    if (!["shortlisted", "rejected"].includes(nextStatus))
       return NextResponse.json({ error: "Invalid application status." }, { status: 400 });
     if (!["submitted", "shortlisted"].includes(application.status))
       return NextResponse.json({ error: "This application has already been decided." }, { status: 409 });
   } else return NextResponse.json({ error: "You cannot update this application." }, { status: 403 });
-  if (nextStatus === "accepted") {
-    const { data: accepted } = await auth.admin.from("opportunity_applications").select("id").eq("opportunity_id", application.opportunity_id).eq("status", "accepted").neq("id", application.id).maybeSingle();
-    if (accepted) return NextResponse.json({ error: "Another applicant has already been accepted." }, { status: 409 });
-  }
   const { data, error } = await auth.admin.from("opportunity_applications").update({ status: nextStatus }).eq("id", application.id).select("*").single();
   if (error) return NextResponse.json({ error: error.code === "23505" ? "Another applicant has already been accepted." : "Could not update the application." }, { status: 409 });
   let conversation = null;
-  if (["shortlisted", "accepted"].includes(nextStatus)) {
+  if (nextStatus === "shortlisted") {
     const result = await auth.admin.from("opportunity_conversations").upsert({
       opportunity_id: opportunity.id,
       application_id: application.id,
@@ -44,15 +40,17 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       status: "active",
     }, { onConflict: "application_id" }).select("id").single();
     conversation = result.data;
+    if (conversation) await auth.admin.from("opportunity_conversation_participants").upsert([
+      { conversation_id: conversation.id, user_id: opportunity.owner_id, participant_role: "client", left_at: null },
+      { conversation_id: conversation.id, user_id: application.applicant_id, participant_role: "freelancer", left_at: null },
+    ], { onConflict: "conversation_id,user_id" });
   }
-  if (nextStatus === "accepted")
-    await auth.admin.from("opportunities").update({ status: "closed" }).eq("id", opportunity.id);
   if (nextStatus === "rejected")
     await auth.admin.from("opportunity_conversations").update({ status: "closed" }).eq("application_id", application.id);
   if (isPoster) await sendOpportunityNotification(auth.admin, {
     userId: application.applicant_id,
     type: `application_${nextStatus}`,
-    title: nextStatus === "shortlisted" ? "Application shortlisted" : nextStatus === "accepted" ? "Application accepted" : "Application update",
+    title: nextStatus === "shortlisted" ? "Application shortlisted" : "Application update",
     message: `Your application for ${opportunity.title} was ${nextStatus}.`,
     entityType: conversation ? "opportunity_conversation" : "opportunity_application",
     entityId: conversation?.id || application.id,
