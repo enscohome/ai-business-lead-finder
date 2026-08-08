@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { mapProfile, ratingSummary } from "@/lib/freelancer";
 import type { PublicFreelancerProfile } from "@/types/freelancer";
+import { isLeadPilotVerified } from "@/lib/control-centre";
 
 export async function getPublicFreelancer(
   username: string,
@@ -58,8 +59,10 @@ export async function getPublicFreelancer(
       .eq("moderation_status", "approved")
       .order("created_at", { ascending: false }),
   ]);
+  const verified = await isLeadPilotVerified(admin, row.user_id);
   const profile = mapProfile({
     ...row,
+    is_leadpilot_verified: verified,
     contact_email: row.visibility_settings?.email
       ? privateRow?.contact_email
       : "",

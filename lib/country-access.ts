@@ -13,7 +13,8 @@ export type CountryFeature =
   | "ai_matching"
   | "verification"
   | "subscriptions"
-  | "website_prompt_builder";
+  | "website_prompt_builder"
+  | "automation_builder";
 const columns: Record<CountryFeature, string> = {
   business_search: "business_search_enabled",
   saved_leads: "saved_leads_enabled",
@@ -27,6 +28,7 @@ const columns: Record<CountryFeature, string> = {
   verification: "verification_enabled",
   subscriptions: "subscriptions_enabled",
   website_prompt_builder: "website_prompt_builder_enabled",
+  automation_builder: "automation_builder_enabled",
 };
 export const NIGERIA = { code: "NG", name: "Nigeria" };
 export async function enforceCountryFeature(

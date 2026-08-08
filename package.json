@@ -8,7 +8,12 @@
     "start": "next start",
     "lint": "next lint",
     "format": "prettier --write .",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test:automation-security": "node --test tests/automation-usage-security.test.mjs",
+    "test:automation-ux": "node --test tests/automation-conversation.test.mjs",
+    "test:opportunities-security": "node --test tests/job-opportunities-security.test.mjs",
+    "test:freelancer-migration": "node --test tests/freelancer-migration-idempotency.test.mjs",
+    "test:owner-control": "node --test tests/owner-control-centre-security.test.mjs"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "^1.0.4",

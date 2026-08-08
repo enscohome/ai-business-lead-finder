@@ -18,6 +18,10 @@ const verificationDecisions = new Set([
   "verification_approved",
   "verification_rejected",
   "verification_suspended",
+  "verification_changes_requested",
+  "verification_revoked",
+  "verification_restored",
+  "verification_under_review",
 ]);
 const verificationApplications = new Set([
   "verification_application",
@@ -38,6 +42,16 @@ const websitePromptBuilder = new Set([
   "website_prompt_builder",
 ]);
 const websitePromptPricing = new Set(["website_prompt_builder_expired"]);
+const automationBuilder = new Set([
+  "automation_workflow_generated",
+  "automation_workflow_regenerated",
+  "automation_workflow_validation_failed",
+  "automation_workflow_project",
+]);
+const verificationApplicantUpdates = new Set([
+  "verification_application_received",
+  "verification_application_status",
+]);
 const jobTypes = new Set([
   "job",
   "job_post",
@@ -54,7 +68,20 @@ const jobTypes = new Set([
   "invitation_received",
   "invitation_accepted",
   "invitation_declined",
+  "opportunity_approved",
+  "opportunity_rejected",
+  "opportunity_completed",
+  "opportunity_assigned",
+  "opportunity_assignment_cancelled",
+  "opportunity_changes_requested",
+  "opportunity_in_progress",
+  "opportunity_ready_for_review",
+  "opportunity_revision_requested",
+  "opportunity_cancelled",
 ]);
+const opportunityApplicantTypes = new Set(["application_submitted", "opportunity_application_received"]);
+const opportunityApplicationTypes = new Set(["application_shortlisted", "application_accepted", "application_rejected"]);
+const opportunityMessageTypes = new Set(["opportunity_message", "new_opportunity_message"]);
 export function getNotificationDestination(
   n: Pick<
     AppNotification,
@@ -65,27 +92,42 @@ export function getNotificationDestination(
     entity = (n.related_entity_type || "").toLowerCase(),
     id = n.related_entity_id;
   if (profile.has(type) || profile.has(entity)) return "/profile";
+  if (["account_suspended", "account_restored", "account_status"].includes(type) || entity === "account_status") return "/settings";
   if (reviews.has(type) || reviews.has(entity)) return "/client-reviews";
-  if (verificationDecisions.has(type)) return "/profile?section=verification";
+  if (verificationDecisions.has(type)) return "/profile/verification";
+  if (verificationApplicantUpdates.has(type) || entity === "verification_application_status")
+    return "/profile/verification";
   if (verificationApplications.has(type))
-    return "/admin/freelancers?tab=verification";
+    return "/admin/verifications";
   if (payments.has(type) || payments.has(entity)) return "/pricing";
   if (websitePromptPricing.has(type)) return "/pricing";
   if (websitePromptBuilder.has(type) || websitePromptBuilder.has(entity))
     return "/tools/website-prompt-builder";
   if (
-    jobTypes.has(type) ||
-    ["job", "job_post", "job_application", "job_invitation"].includes(entity)
+    automationBuilder.has(type) ||
+    automationBuilder.has(entity) ||
+    type.startsWith("automation_workflow_")
   )
-    return id ? `/jobs/${id}` : null;
+    return id
+      ? `/tools/automation-builder?project=${encodeURIComponent(id)}`
+      : "/tools/automation-builder/history";
+  if (
+    opportunityMessageTypes.has(type) || entity === "opportunity_conversation"
+  )
+    return id ? `/messages/${encodeURIComponent(id)}` : "/messages";
+  if (opportunityApplicantTypes.has(type) || entity === "opportunity_applicants")
+    return id ? `/opportunities/${encodeURIComponent(id)}/applications` : "/opportunities/my-posts";
+  if (opportunityApplicationTypes.has(type) || entity === "opportunity_application")
+    return id ? `/opportunities/my-applications?application=${encodeURIComponent(id)}` : "/opportunities/my-applications";
+  if (
+    jobTypes.has(type) ||
+    ["job", "job_post", "opportunity", "job_invitation"].includes(entity)
+  )
+    return id ? `/opportunities/${encodeURIComponent(id)}` : "/opportunities";
   if (type.startsWith("admin_moderation") || entity === "admin_moderation")
     return "/admin/freelancers";
   return null;
 }
 export function isDestinationAvailable(destination: string | null) {
-  return Boolean(
-    destination &&
-    !destination.startsWith("/jobs/") &&
-    !destination.startsWith("/admin/jobs"),
-  );
+  return Boolean(destination);
 }

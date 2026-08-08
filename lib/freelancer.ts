@@ -214,6 +214,7 @@ export function mapProfile(row: any): FreelancerProfile {
     certifications: row.certifications || [],
     profileCompletionPercentage: row.profile_completion_percentage || 0,
     verificationStatus: row.verification_status || "not_verified",
+    isLeadPilotVerified: row.is_leadpilot_verified === true,
     verifiedAt: row.verified_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

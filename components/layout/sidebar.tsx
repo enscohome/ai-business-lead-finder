@@ -15,6 +15,10 @@ import {
   UserCircle,
   Star,
   WandSparkles,
+  Workflow,
+  BriefcaseBusiness,
+  MessageSquare,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { LeadPilotLogo } from "@/components/branding/leadpilot-logo";
@@ -26,10 +30,17 @@ const navigation = [
   { name: "Saved Leads", href: "/leads", icon: Users },
   { name: "Freelancer Profile", href: "/profile", icon: UserCircle },
   { name: "Client Reviews", href: "/client-reviews", icon: Star },
+  { name: "Job Opportunities", href: "/opportunities", icon: BriefcaseBusiness },
+  { name: "Messages", href: "/messages", icon: MessageSquare },
   {
     name: "Website Prompt Builder",
     href: "/tools/website-prompt-builder",
     icon: WandSparkles,
+  },
+  {
+    name: "AI Automation Builder",
+    href: "/tools/automation-builder",
+    icon: Workflow,
   },
   { name: "Team", href: "/team", icon: Building2 },
 ];
@@ -37,6 +48,15 @@ const navigation = [
 export function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [controlCentreAccess, setControlCentreAccess] = React.useState(false);
+  React.useEffect(() => {
+    let active = true;
+    fetch("/api/admin/control-centre?view=access")
+      .then((response) => response.ok ? response.json() : null)
+      .then((data) => { if (active) setControlCentreAccess(data?.allowed === true); })
+      .catch(() => undefined);
+    return () => { active = false; };
+  }, []);
 
   return (
     <>
@@ -88,7 +108,7 @@ export function Sidebar() {
         </Link>
 
         {/* Navigation */}
-        <nav className="flex-1 px-3 py-4 space-y-1">
+        <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
           {navigation.map((item) => {
             const isActive =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -111,6 +131,21 @@ export function Sidebar() {
               </Link>
             );
           })}
+          {controlCentreAccess && (
+            <Link
+              href="/admin"
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
+                pathname === "/admin" || pathname.startsWith("/admin/")
+                  ? "bg-blue-500/10 text-blue-400"
+                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+              )}
+            >
+              <ShieldCheck className="h-5 w-5" />
+              Owner Control Centre
+            </Link>
+          )}
         </nav>
 
         {/* Bottom section */}
